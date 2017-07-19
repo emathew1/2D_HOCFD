@@ -1,4 +1,3 @@
-#include <math.h>
 #include "IdealGas.hpp"
 
 void IdealGas::solveMu(double *T, double *mu){

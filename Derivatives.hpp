@@ -1,3 +1,7 @@
+#include <math.h>
+#include <cstring>
+#include <iostream>
+#include "Utils.hpp"
 
 class Derivatives{
 

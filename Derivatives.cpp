@@ -1,7 +1,3 @@
-#include <math.h>
-#include <cstring>
-#include <iostream>
-#include "Utils.hpp"
 #include "Derivatives.hpp"
 
 using namespace std;
