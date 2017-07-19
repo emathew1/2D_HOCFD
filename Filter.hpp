@@ -2,6 +2,8 @@
 class Filter{
 
     public:
+	int Nx, Ny;
+	
 	double alphaF;
 	double betaF;
 	double a0, a1, a2, a3, a4, a5;
@@ -23,10 +25,15 @@ class Filter{
 
 	diagFx = NULL; offFx = NULL;
 	diagFy = NULL; offFy = NULL;
+
+	Nx = 0; Ny = 0;
     }
 
 
     Filter(int NX, int NY){
+
+	Nx = NX; Ny = NY;
+
 	alphaF = 0.49;
 	betaF  = 0.0;
 
@@ -43,5 +50,10 @@ class Filter{
 	offFy  = new double[NY];
 	
     }
+
+    void multRHSFilter(double *phi, int N, double *RHSvec);
+
+    void FilterPeriodicY(double *phi, double *phiF);
+    void FilterPeriodicX(double *phi, double *phiF);
 
 };
