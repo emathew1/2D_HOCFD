@@ -30,3 +30,9 @@ void IdealGas::solveSOS(double *rho, double *p, double *SOS){
     }
 }
 
+void IdealGas::solverhoE(double *rho, double *p, double *U, double *V, double *rhoE){
+    for(int ip = 0; ip < Ny*Nx; ip++){
+        rhoE[ip] = p[ip]/(gamma-1.0) + 0.5*rho[ip]*(U[ip]*U[ip] + V[ip]*V[ip]);
+    }
+}
+

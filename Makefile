@@ -3,7 +3,7 @@ CC=g++
 # CFLAGS will be the options passed to the compiler. 
 CFLAGS= -O3 -std=c++11 
 #CFLAGS= -g -std=c++11 -fopenmp 
-OBJECTS  = main_obj.o Utils.o Solver.o 
+OBJECTS  = main_obj.o Utils.o Solver.o Filter.o Derivatives.o IdealGas.o 
 
 all: 2D_HOCFD
 

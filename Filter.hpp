@@ -52,6 +52,16 @@ class Filter{
 	offFx  = new double[NX];
 	diagFy = new double[NY]; 
 	offFy  = new double[NY];
+
+        for(int ip = 0; ip < Nx; ip++){
+            diagFx[ip] = 1.0;
+            offFx[ip]  = alphaF;
+        }
+        
+        for(int ip = 0; ip < Ny; ip++){
+            diagFy[ip] = 1.0;
+            offFy[ip]  = alphaF;
+        }
 	
     }
 

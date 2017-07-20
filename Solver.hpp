@@ -20,7 +20,7 @@ class Solver{
 
     //Time and step stuff
     double dt, time, timeEnd;
-    int step, checkStep, timeStep;
+    int step, checkStep, timeStep, filterStep, outputStep;
     double CFL;
     
     //Initial Conditions
@@ -106,7 +106,7 @@ class Solver{
 
 	dt = 0; time = 0; timeEnd = 0;
 	step = 0; checkStep = 0; timeStep = 0;
-	CFL = 0;
+	filterStep = 0; outputStep = 0; CFL = 0;
 
 	idealGas = NULL;
 	filter   = NULL;
@@ -189,15 +189,17 @@ class Solver{
 
 	dt = 0; time = 0; timeEnd = 0;
 	step = 0; checkStep = 0; timeStep = 0;
-	CFL = 0;
+	outputStep = 0; filterStep = 0; CFL = 0;
 
-	idealGas = new IdealGas;
+	idealGas = new IdealGas(Nx, Ny);
 	filter   = new Filter(Nx, Ny);
 	derivatives = new Derivatives(Nx, Ny);
 
     }
 
     void hellotest();
+
+    void applyInitialCondition();
     
 
 };

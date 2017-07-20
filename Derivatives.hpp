@@ -45,6 +45,17 @@ class Derivatives{
 	offx  = new double[NX];
 	diagy = new double[NY]; 
 	offy  = new double[NY];
+
+	for(int ip = 0; ip < Nx; ip++){
+	    diagx[ip] = 1.0;
+	    offx[ip]  = alpha;
+	}
+
+	for(int ip = 0; ip < Ny; ip++){
+	    diagy[ip] = 1.0;
+	    offy[ip]  = alpha;
+	}
+
     }
 
     void multRHSDeriv(double dh, double *phi, int N, double *RHSvec);

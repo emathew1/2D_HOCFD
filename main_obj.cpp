@@ -21,8 +21,35 @@ int main(int argc, char *argv[]){
     cout << " Testing 2-D High Order Solver w/ OOP " << endl;
     cout << "--------------------------------------" << endl;
 
-    Solver *solver = new Solver(100, 100, 1, 1);
-    cout << solver->derivatives->alpha << endl;
+    int Nx = 100; double Lx = 1.0;
+    int Ny = 100; double Ly = 1.0;
+
+    Solver *solver = new Solver(Nx, Ny, Lx, Ly);
+
+    //Set some of the solver parameters
+    solver->timeStep    = 100000;
+    solver->timeEnd     = 10.0;
+    solver->filterStep  = 5;
+    solver->checkStep   = 1;
+    solver->outputStep  = 1;
+    solver->CFL		= 0.3;
+
+    //Change fluid properties
+    solver->idealGas->mu_ref = 0.00001;
+
+    //Allocate an initial condition
+    for(int ip = 0; ip < Nx; ip++){
+	for(int jp = 0; jp < Ny; jp++){
+	    solver->p0[ip*Ny + jp]   = 1.0/1.4;
+	    solver->U0[ip*Ny + jp]   = 0.0;
+	    solver->V0[ip*Ny + jp]   = 0.0;
+	    solver->rho0[ip*Ny + jp] = 1.0;
+	}
+    }
+
+
+    solver->applyInitialCondition();
+    cout << solver->SOS[0] << endl;
 
 /*
     //Time and step stuff
