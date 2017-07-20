@@ -49,7 +49,11 @@ int main(int argc, char *argv[]){
 
 
     solver->applyInitialCondition();
-    cout << solver->SOS[0] << endl;
+    solver->computeDtFromCFL_advanceTime();
+
+    solver->computeVelocityTemperatureGradients();
+
+    cout << solver->Ux[0] << " " << solver->Vy[1] << endl;
 
 /*
     //Time and step stuff

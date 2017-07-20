@@ -201,5 +201,16 @@ class Solver{
 
     void applyInitialCondition();
     
+    void computeDtFromCFL_advanceTime();
+
+    void computeVelocityTemperatureGradients();
+
+    void computeContinuity();
+
+    void computeXMomentum();
+
+    void computeYMomentum();
+
+    void computeEnergy();
 
 };
