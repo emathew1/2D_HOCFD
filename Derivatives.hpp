@@ -32,8 +32,9 @@ class Derivatives{
 	diagy = NULL; offy = NULL;
     }
 
-    Derivatives(int NX, int NY){
+    Derivatives(int NX, int NY, double DX, double DY){
 	Nx = NX; Ny = NY;
+	dx = DX; dy = DY;
 
 	alpha = 1.0/3.0;
 	beta  = 0.0;

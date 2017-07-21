@@ -21,8 +21,8 @@ int main(int argc, char *argv[]){
     cout << " Testing 2-D High Order Solver w/ OOP " << endl;
     cout << "--------------------------------------" << endl;
 
-    int Nx = 100; double Lx = 1.0;
-    int Ny = 100; double Ly = 1.0;
+    int Nx = 10; double Lx = 2*M_PI - 2*M_PI/((double)Nx);
+    int Ny = 10; double Ly = 2*M_PI - 2*M_PI/((double)Ny);
 
     Solver *solver = new Solver(Nx, Ny, Lx, Ly);
 
@@ -41,8 +41,8 @@ int main(int argc, char *argv[]){
     for(int ip = 0; ip < Nx; ip++){
 	for(int jp = 0; jp < Ny; jp++){
 	    solver->p0[ip*Ny + jp]   = 1.0/1.4;
-	    solver->U0[ip*Ny + jp]   = 0.0;
-	    solver->V0[ip*Ny + jp]   = 0.0;
+	    solver->U0[ip*Ny + jp]   = cos(solver->x[ip]);
+	    solver->V0[ip*Ny + jp]   = sin(solver->x[ip]);;
 	    solver->rho0[ip*Ny + jp] = 1.0;
 	}
     }
@@ -53,7 +53,14 @@ int main(int argc, char *argv[]){
 
     solver->computeVelocityTemperatureGradients();
 
-    cout << solver->Ux[0] << " " << solver->Vy[1] << endl;
+    std::cout.precision(18);
+
+    for(int ip = 0; ip < Nx; ip++){
+	for(int jp = 0; jp < Ny; jp++){
+	    cout << solver->Vx[ip*Ny + jp] << " ";
+	}
+	cout << endl;
+    }
 
 /*
     //Time and step stuff

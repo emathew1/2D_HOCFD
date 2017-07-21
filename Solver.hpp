@@ -193,7 +193,7 @@ class Solver{
 
 	idealGas = new IdealGas(Nx, Ny);
 	filter   = new Filter(Nx, Ny);
-	derivatives = new Derivatives(Nx, Ny);
+	derivatives = new Derivatives(Nx, Ny, dx, dy);
 
     }
 

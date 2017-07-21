@@ -20,7 +20,7 @@ void Derivatives::multRHSDeriv(double dh, double *phi, int N, double *RHSvec){
     RHSvec[2] = c1*phi[N-1] + c2*phi[0] + c3*phi[1] + \
                         c4*phi[3] + c5*phi[4] + c6*phi[5];
 
-    for(int ip = 0; ip < N; ip++){
+    for(int ip = 3; ip < N-3; ip++){
         RHSvec[ip] = c1*phi[ip-3] + c2*phi[ip-2] + c3*phi[ip-1] + \
                         c4*phi[ip+1] + c5*phi[ip+2] + c6*phi[ip+3];
 
@@ -54,9 +54,11 @@ void Derivatives::CompactDYPeriodic(double *phi, double *dphidy){
 void Derivatives::CompactDXPeriodic(double *phi, double *dphidx){
 
     double *phiTrans = new double[Nx*Ny];
+
     double *dphidxTrans = new double[Nx*Ny];
     //transposeMatrix(phi, Nx, Ny, phiTrans);
     transposeMatrix_Fast2(phi, Nx, Ny, phiTrans, 60);
+
 
     double RHSvec[Nx];
     #pragma omp parallel for private(RHSvec)
