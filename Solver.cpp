@@ -1,9 +1,5 @@
 #include "Solver.hpp"
 
-void Solver::hellotest(){
-	cout << "Testing Testing" << endl;
-}
-
 void Solver::applyInitialCondition(){
     for(int ip = 0; ip < Nx*Ny; ip++){
 	U[ip]     = U0[ip];
@@ -55,10 +51,10 @@ void Solver::computeVelocityTemperatureGradients(){
 
 }
 
-void Solver::computeContinuity(){
+void Solver::computeContinuity(double *rhoU, double *rhoV){
    
-    derivatives->CompactDXPeriodic(rhoU1, rhsDxOut);
-    derivatives->CompactDYPeriodic(rhoV1, rhsDyOut);
+    derivatives->CompactDXPeriodic(rhoU, rhsDxOut);
+    derivatives->CompactDYPeriodic(rhoV, rhsDyOut);
 
     for(int ip = 0; ip < Nx*Ny; ip++){
 	rhok[ip] = -dt*(rhsDxOut[ip] + rhsDyOut[ip]);
@@ -66,11 +62,11 @@ void Solver::computeContinuity(){
 
 }
 
-void Solver::computeXMomentum(){
+void Solver::computeXMomentum(double *rhoU, double *rhoV){
     
     for(int jp = 0; jp < Nx*Ny; jp++){
-        rhsDxIn[jp] = -(rhoU1[jp]*U[jp] + p[jp] - 2.0*mu[jp]*Ux[jp] + (2.0/3.0)*mu[jp]*(Ux[jp] + Vy[jp]));
-        rhsDyIn[jp] = -(rhoV1[jp]*U[jp] - mu[jp]*(Uy[jp] + Vx[jp]));
+        rhsDxIn[jp] = -(rhoU[jp]*U[jp] + p[jp] - 2.0*mu[jp]*Ux[jp] + (2.0/3.0)*mu[jp]*(Ux[jp] + Vy[jp]));
+        rhsDyIn[jp] = -(rhoV[jp]*U[jp] - mu[jp]*(Uy[jp] + Vx[jp]));
     }
 
     derivatives->CompactDXPeriodic(rhsDxIn, rhsDxOut);
@@ -81,11 +77,11 @@ void Solver::computeXMomentum(){
     }
 }
 
-void Solver::computeYMomentum(){
+void Solver::computeYMomentum(double *rhoU, double *rhoV){
 
     for(int jp = 0; jp < Nx*Ny; jp++){
-        rhsDxIn[jp] = -(rhoU1[jp]*V[jp] - mu[jp]*(Uy[jp] + Vx[jp]));
-        rhsDyIn[jp] = -(rhoV1[jp]*V[jp] + p[jp] - 2.0*mu[jp]*Vy[jp] + (2.0/3.0)*mu[jp]*(Ux[jp] + Vy[jp]));
+        rhsDxIn[jp] = -(rhoU[jp]*V[jp] - mu[jp]*(Uy[jp] + Vx[jp]));
+        rhsDyIn[jp] = -(rhoV[jp]*V[jp] + p[jp] - 2.0*mu[jp]*Vy[jp] + (2.0/3.0)*mu[jp]*(Ux[jp] + Vy[jp]));
     }
 
     derivatives->CompactDXPeriodic(rhsDxIn, rhsDxOut);
@@ -96,13 +92,13 @@ void Solver::computeYMomentum(){
     }
 }
 
-void Solver::computeEnergy(){
+void Solver::computeEnergy(double *rhoE){
 
     for(int jp = 0; jp < Nx*Ny; jp++){
-        rhsDxIn[jp] = -(rhoE1[jp]*U[jp] + U[jp]*p[jp] - (mu[jp]/idealGas->Pr/(idealGas->gamma-1.0))*Tx[jp] +
+        rhsDxIn[jp] = -(rhoE[jp]*U[jp] + U[jp]*p[jp] - (mu[jp]/idealGas->Pr/(idealGas->gamma-1.0))*Tx[jp] +
                             -U[jp]*(2.0*mu[jp]*Ux[jp] - (2.0/3.0)*mu[jp]*(Ux[jp]+Vy[jp])) +
                             -V[jp]*(mu[jp]*(Vx[jp] + Uy[jp])));
-        rhsDyIn[jp] = -(rhoE1[jp]*V[jp] + V[jp]*p[jp] - (mu[jp]/idealGas->Pr/(idealGas->gamma-1.0))*Ty[jp] +
+        rhsDyIn[jp] = -(rhoE[jp]*V[jp] + V[jp]*p[jp] - (mu[jp]/idealGas->Pr/(idealGas->gamma-1.0))*Ty[jp] +
                             -V[jp]*(2.0*mu[jp]*Vy[jp] - (2.0/3.0)*mu[jp]*(Ux[jp]+Vy[jp])) +
                             -U[jp]*(mu[jp]*(Vx[jp] + Uy[jp])));
     }
@@ -114,5 +110,32 @@ void Solver::computeEnergy(){
         rhoEk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp]);
     }
 
+
+}
+
+void Solver::updateSolutionRKStep1(){
+
+    //Update the final solution
+    for(int jp = 0; jp < Nx*Ny; jp++){
+        rho2[jp]  = rho1[jp]  + rhok[jp]/6.0;
+        rhoU2[jp] = rhoU1[jp] + rhoUk[jp]/6.0;
+        rhoV2[jp] = rhoV1[jp] + rhoVk[jp]/6.0;
+        rhoE2[jp] = rhoE1[jp] + rhoEk[jp]/6.0;
+    }
+
+    //Get the intermediate solution
+    for(int jp = 0; jp < Nx*Ny; jp++){
+	rho1k[jp]  = rho1[jp] + rhok[jp]/2.0;
+        rhoU1k[jp] = rhoU1[jp] + rhoUk[jp]/2.0;
+        rhoV1k[jp] = rhoV1[jp] + rhoVk[jp]/2.0;
+        rhoE1k[jp] = rhoE1[jp] + rhoEk[jp]/2.0;
+    }
+
+    //update primative and fluid properties
+    idealGas->solveU(rho1k, rhoU1k, U);
+    idealGas->solveU(rho1k, rhoV1k, V);
+    idealGas->solvep(rho1k, rhoE1k, U, V, p);
+    idealGas->solveT(rho1k, p, T);
+    idealGas->solveMu(T, mu);
 
 }

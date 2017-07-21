@@ -41,23 +41,36 @@ int main(int argc, char *argv[]){
     for(int ip = 0; ip < Nx; ip++){
 	for(int jp = 0; jp < Ny; jp++){
 	    solver->p0[ip*Ny + jp]   = 1.0/1.4;
-	    solver->U0[ip*Ny + jp]   = cos(solver->x[ip]);
-	    solver->V0[ip*Ny + jp]   = sin(solver->x[ip]);;
+	    solver->U0[ip*Ny + jp]   = 0.5; //cos(solver->x[ip]);
+	    solver->V0[ip*Ny + jp]   = 0.5; //sin(solver->x[ip]);;
 	    solver->rho0[ip*Ny + jp] = 1.0;
 	}
     }
 
 
     solver->applyInitialCondition();
+
     solver->computeDtFromCFL_advanceTime();
 
     solver->computeVelocityTemperatureGradients();
+
+    solver->computeContinuity(solver->rhoU1, solver->rhoV1);
+
+    solver->computeXMomentum(solver->rhoU1, solver->rhoV1);
+
+    solver->computeYMomentum(solver->rhoU1, solver->rhoV1);
+
+    solver->computeEnergy(solver->rhoE1);
+    
+    solver->updateSolutionRKStep1();
+
+
 
     std::cout.precision(18);
 
     for(int ip = 0; ip < Nx; ip++){
 	for(int jp = 0; jp < Ny; jp++){
-	    cout << solver->Vx[ip*Ny + jp] << " ";
+	    cout << solver->U[ip*Ny + jp] << " ";
 	}
 	cout << endl;
     }

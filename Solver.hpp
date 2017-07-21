@@ -197,20 +197,20 @@ class Solver{
 
     }
 
-    void hellotest();
-
     void applyInitialCondition();
     
     void computeDtFromCFL_advanceTime();
 
     void computeVelocityTemperatureGradients();
 
-    void computeContinuity();
+    void computeContinuity(double *rhoU, double *rhoV);
 
-    void computeXMomentum();
+    void computeXMomentum(double *rhoU, double *rhoV);
 
-    void computeYMomentum();
+    void computeYMomentum(double *rhoU, double *rhoV);
 
-    void computeEnergy();
+    void computeEnergy(double *rhoE);
+
+    void updateSolutionRKStep1();
 
 };
