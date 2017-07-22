@@ -100,7 +100,7 @@ void getRange(double *phi, std::string dataName, int Nx, int Ny){
         }
     }
 
-    cout << "Range of " << dataName << ": " << dataMin << ":" << dataMax << endl;
+    cout << "  Range of " << dataName << ": " << dataMin << ":" << dataMax << endl;
 
 }
 

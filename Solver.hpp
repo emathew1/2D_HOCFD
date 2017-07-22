@@ -1,4 +1,8 @@
 #include "Utils.hpp"
+#include <chrono>
+#include <ctime>
+#include <iostream>
+#include <fstream>
 #include "Filter.hpp"
 #include "Derivatives.hpp"
 #include "IdealGas.hpp"
@@ -20,8 +24,11 @@ class Solver{
 
     //Time and step stuff
     double dt, time, timeEnd;
-    int step, checkStep, timeStep, filterStep, outputStep;
-    double CFL;
+    int step, checkStep, timeStep, filterCount, filterStep, outputStep;
+    double CFL; bool endFlag;
+
+    //Timing 
+    std::chrono::system_clock::time_point t1, t2;
     
     //Initial Conditions
     double *rho0;
@@ -106,7 +113,8 @@ class Solver{
 
 	dt = 0; time = 0; timeEnd = 0;
 	step = 0; checkStep = 0; timeStep = 0;
-	filterStep = 0; outputStep = 0; CFL = 0;
+	filterCount = 0; filterStep = 0; outputStep = 0; CFL = 0;
+	endFlag = 0;
 
 	idealGas = NULL;
 	filter   = NULL;
@@ -189,11 +197,16 @@ class Solver{
 
 	dt = 0; time = 0; timeEnd = 0;
 	step = 0; checkStep = 0; timeStep = 0;
-	outputStep = 0; filterStep = 0; CFL = 0;
+	outputStep = 0; filterCount = 0; 
+	filterStep = 0; CFL = 0;
+	endFlag = 0;
 
 	idealGas = new IdealGas(Nx, Ny);
 	filter   = new Filter(Nx, Ny);
 	derivatives = new Derivatives(Nx, Ny, dx, dy);
+
+        t1 = std::chrono::system_clock::now();
+        t2 = std::chrono::system_clock::now();
 
     }
 
@@ -213,4 +226,19 @@ class Solver{
 
     void updateSolutionRKStep1();
 
+    void updateSolutionRKStep2();
+
+    void updateSolutionRKStep3();
+
+    void updateSolutionRKStep4();
+
+    void filterAndUpdateSolution();
+
+    void updateEndOfStepPrimAndTemp();
+
+    void checkSolution();
+
+    void dumpSolution();
+
+    void checkEnd();
 };
