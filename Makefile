@@ -3,14 +3,14 @@ CC=g++
 # CFLAGS will be the options passed to the compiler. 
 CFLAGS= -O3 -std=c++11 
 #CFLAGS= -g -std=c++11 -fopenmp 
-OBJECTS  = main_obj.o Utils.o Solver.o Filter.o Derivatives.o IdealGas.o 
+OBJECTS  = main.o Utils.o Solver.o Filter.o Derivatives.o IdealGas.o 
 
 all: 2D_HOCFD
 
 2D_HOCFD:  $(OBJECTS)
 	$(CC) $(CFLAGS) $(OBJECTS) -o $@ 
 
-main_obj.o: main_obj.cpp Utils.hpp Filter.hpp Derivatives.hpp IdealGas.hpp
+main.o: main.cpp Utils.hpp Filter.hpp Derivatives.hpp IdealGas.hpp
 	$(CC) $(CFLAGS) -c $< 
 
 Utils.o: Utils.cpp Utils.hpp
