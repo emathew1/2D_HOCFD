@@ -1,5 +1,32 @@
 #include "Solver.hpp"
 
+void Solver::setBCForDerivatives(){
+
+    if(bcX0 == SPONGE || bcX0 ==  WALL || bcX0 ==  MOVING_WALL){
+	derivatives->offx2[0] = derivatives->alpha1;
+	derivatives->offx2[1] = derivatives->alpha22;
+	derivatives->offx1[1] = derivatives->alpha21;
+    }
+
+    if(bcX1 == SPONGE || bcX1 ==  WALL || bcX1 ==  MOVING_WALL){
+	derivatives->offx2[Nx-2] = derivatives->alpha21;
+	derivatives->offx1[Nx-2] = derivatives->alpha22;
+	derivatives->offx1[Nx-1] = derivatives->alpha1;
+    }
+
+    if(bcY0 == SPONGE || bcY0 ==  WALL || bcY0 ==  MOVING_WALL){
+	derivatives->offy2[0] = derivatives->alpha1;
+	derivatives->offy2[1] = derivatives->alpha22;
+	derivatives->offy1[1] = derivatives->alpha21;
+    }
+
+    if(bcY1 == SPONGE || bcY1 ==  WALL || bcY1 ==  MOVING_WALL){
+	derivatives->offy2[Ny-2] = derivatives->alpha21;
+	derivatives->offy1[Ny-2] = derivatives->alpha22;
+	derivatives->offy1[Ny-1] = derivatives->alpha1;
+    }   
+}
+
 void Solver::applyInitialCondition(){
     for(int ip = 0; ip < Nx*Ny; ip++){
 	U[ip]     = U0[ip];

@@ -22,8 +22,8 @@ int main(int argc, char *argv[]){
     cout << "--------------------------------------" << endl;
     cout << endl;
 
-    int Nx = 100; double Lx = 2*M_PI - 2*M_PI/((double)Nx);
-    int Ny = 100; double Ly = 2*M_PI - 2*M_PI/((double)Ny);
+    int Nx = 10; double Lx = 1; //2*M_PI - 2*M_PI/((double)Nx);
+    int Ny = 10; double Ly = 1; //2*M_PI - 2*M_PI/((double)Ny);
 
     Solver *solver = new Solver(Nx, Ny, Lx, Ly);
 
@@ -38,25 +38,40 @@ int main(int argc, char *argv[]){
     //Change fluid properties
     solver->idealGas->mu_ref = 0.00001;
 
+    //Set the BC's for the solver
+    solver->bcX0 = Solver::SPONGE;
+    solver->bcX1 = Solver::SPONGE;
+    solver->bcY0 = Solver::PERIODIC;
+    solver->bcY1 = Solver::PERIODIC;
+    solver->setBCForDerivatives();
+
     //Allocate an initial condition
     for(int ip = 0; ip < Nx; ip++){
 	for(int jp = 0; jp < Ny; jp++){
 	    solver->p0[ip*Ny + jp]   = 1.0/1.4;
-	    solver->U0[ip*Ny + jp]   = 0.1*cos(4.0*solver->x[ip]);
-	    solver->V0[ip*Ny + jp]   = 0.1*sin(3.0*solver->y[jp]);;
+	    solver->U0[ip*Ny + jp]   = solver->x[ip];
+	    solver->V0[ip*Ny + jp]   = solver->y[jp];
 	    solver->rho0[ip*Ny + jp] = 1.0;
 	}
     }
 
-
     solver->applyInitialCondition();
-    solver->dumpSolution();
 
+    solver->derivatives->CompactDYPeriodic(solver->U, solver->Uy);
+
+    for(int ip = 0; ip < Nx; ip++){
+	for(int jp = 0; jp < Ny; jp++){
+	    cout << solver->Uy[ip*Ny + jp] << " ";
+	}
+	cout << endl;
+    }
+    cout << endl;
+
+/*
     while(!solver->endFlag){
 
         //At the beginning of every step
         solver->computeDtFromCFL_advanceTime();
-
 
 	//=======================
         // RK Step 1
@@ -147,6 +162,7 @@ int main(int argc, char *argv[]){
         solver->checkEnd();
 
     }
+*/
 
     return 0;
 }

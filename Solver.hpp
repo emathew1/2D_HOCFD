@@ -16,6 +16,13 @@ class Solver{
     Filter *filter;
     Derivatives *derivatives; 
 
+    //Solver Options
+    enum TimeStepping { CONST_DT, CONST_CFL};
+    TimeStepping timeStepping;
+
+    enum BoundaryConditions { PERIODIC, SPONGE, WALL, MOVING_WALL, INLET};
+    BoundaryConditions bcX0, bcX1, bcY0, bcY1;
+ 
     //Mesh
     int Nx, Ny;
     double Lx, Ly;
@@ -120,6 +127,13 @@ class Solver{
 	filter   = NULL;
 	derivatives = NULL;
 
+	//Default to PERIODIC and CONST_CFL
+	timeStepping = CONST_CFL;
+	bcX0 = PERIODIC;
+	bcX1 = PERIODIC;
+	bcY0 = PERIODIC;
+	bcY1 = PERIODIC;
+
     }
 
     //Array initializing constructor
@@ -205,10 +219,20 @@ class Solver{
 	filter   = new Filter(Nx, Ny);
 	derivatives = new Derivatives(Nx, Ny, dx, dy);
 
+	//Default to PERIODIC and CONST_CFL
+	timeStepping = CONST_CFL;
+	bcX0 = PERIODIC;
+	bcX1 = PERIODIC;
+	bcY0 = PERIODIC;
+	bcY1 = PERIODIC;
+
         t1 = std::chrono::system_clock::now();
         t2 = std::chrono::system_clock::now();
 
     }
+
+
+    void setBCForDerivatives();
 
     void applyInitialCondition();
     
