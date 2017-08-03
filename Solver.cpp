@@ -6,24 +6,32 @@ void Solver::setBCForDerivatives(){
 	derivatives->offx2[0] = derivatives->alpha1;
 	derivatives->offx2[1] = derivatives->alpha22;
 	derivatives->offx1[1] = derivatives->alpha21;
+	filter->alphaFx[0] = 0.0;
+	filter->offFx2[0] = 0.0;
     }
 
     if(bcX1 == SPONGE || bcX1 ==  WALL || bcX1 ==  MOVING_WALL){
 	derivatives->offx2[Nx-2] = derivatives->alpha21;
 	derivatives->offx1[Nx-2] = derivatives->alpha22;
 	derivatives->offx1[Nx-1] = derivatives->alpha1;
+	filter->alphaFx[Nx-1] = 0.0;
+	filter->offFx1[Nx-1] = 0.0;
     }
 
     if(bcY0 == SPONGE || bcY0 ==  WALL || bcY0 ==  MOVING_WALL){
 	derivatives->offy2[0] = derivatives->alpha1;
 	derivatives->offy2[1] = derivatives->alpha22;
 	derivatives->offy1[1] = derivatives->alpha21;
+	filter->alphaFy[0] = 0.0;
+	filter->offFy2[0] = 0.0;
     }
 
     if(bcY1 == SPONGE || bcY1 ==  WALL || bcY1 ==  MOVING_WALL){
 	derivatives->offy2[Ny-2] = derivatives->alpha21;
 	derivatives->offy1[Ny-2] = derivatives->alpha22;
 	derivatives->offy1[Ny-1] = derivatives->alpha1;
+	filter->alphaFy[Ny-1] = 0.0;
+	filter->offFy1[Ny-1] = 0.0;
     }   
 }
 
@@ -61,28 +69,48 @@ void Solver::computeDtFromCFL_advanceTime(){
     }
 
     dt = dtTemp;
-    dt = 0.008;
+//    dt = 0.008;
 
     time += dt;
     step++;
 }
 
+void Solver::computeCompactDY(double *phi, double *dphidy){
+
+    if(bcY0 == PERIODIC || bcY1 == PERIODIC){
+        derivatives->CompactDYPeriodic(phi, dphidy);
+    }else{
+	derivatives->CompactDYDirichlet(phi, dphidy);
+    }
+
+}
+
+void Solver::computeCompactDX(double *phi, double *dphidx){
+
+    if(bcX0 == PERIODIC || bcX1 == PERIODIC){
+        derivatives->CompactDXPeriodic(phi, dphidx);
+    }else{
+	derivatives->CompactDXDirichlet(phi, dphidx);
+    }
+}
+
 void Solver::computeVelocityTemperatureGradients(){
 
-    derivatives->CompactDXPeriodic(U, Ux);
-    derivatives->CompactDXPeriodic(V, Vx);
-    derivatives->CompactDYPeriodic(U, Uy);
-    derivatives->CompactDYPeriodic(V, Vy);
 
-    derivatives->CompactDXPeriodic(T, Tx);
-    derivatives->CompactDYPeriodic(T, Ty);
+        computeCompactDY(U, Uy);
+        computeCompactDY(V, Vy);
+        computeCompactDY(T, Ty);
+
+        computeCompactDX(U, Ux);
+        computeCompactDX(V, Vx);
+        computeCompactDX(T, Tx);
 
 }
 
 void Solver::computeContinuity(double *rhoU, double *rhoV){
    
-    derivatives->CompactDXPeriodic(rhoU, rhsDxOut);
-    derivatives->CompactDYPeriodic(rhoV, rhsDyOut);
+    computeCompactDX(rhoU, rhsDxOut);
+    computeCompactDY(rhoV, rhsDyOut);
 
     for(int ip = 0; ip < Nx*Ny; ip++){
 	rhok[ip] = -dt*(rhsDxOut[ip] + rhsDyOut[ip]);
@@ -97,8 +125,8 @@ void Solver::computeXMomentum(double *rhoU, double *rhoV){
         rhsDyIn[jp] = -(rhoV[jp]*U[jp] - mu[jp]*(Uy[jp] + Vx[jp]));
     }
 
-    derivatives->CompactDXPeriodic(rhsDxIn, rhsDxOut);
-    derivatives->CompactDYPeriodic(rhsDyIn, rhsDyOut);
+    computeCompactDX(rhsDxIn, rhsDxOut);
+    computeCompactDY(rhsDyIn, rhsDyOut);
     
     for(int jp = 0; jp < Nx*Ny; jp++){
 	rhoUk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp]);
@@ -112,8 +140,8 @@ void Solver::computeYMomentum(double *rhoU, double *rhoV){
         rhsDyIn[jp] = -(rhoV[jp]*V[jp] + p[jp] - 2.0*mu[jp]*Vy[jp] + (2.0/3.0)*mu[jp]*(Ux[jp] + Vy[jp]));
     }
 
-    derivatives->CompactDXPeriodic(rhsDxIn, rhsDxOut);
-    derivatives->CompactDYPeriodic(rhsDyIn, rhsDyOut);
+    computeCompactDX(rhsDxIn, rhsDxOut);
+    computeCompactDY(rhsDyIn, rhsDyOut);
 
     for(int jp = 0; jp < Nx*Ny; jp++){
         rhoVk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp]);
@@ -131,8 +159,8 @@ void Solver::computeEnergy(double *rhoE){
                             -U[jp]*(mu[jp]*(Vx[jp] + Uy[jp])));
     }
 
-    derivatives->CompactDXPeriodic(rhsDxIn, rhsDxOut);
-    derivatives->CompactDYPeriodic(rhsDyIn, rhsDyOut);
+    computeCompactDX(rhsDxIn, rhsDxOut);
+    computeCompactDY(rhsDyIn, rhsDyOut);
 
     for(int jp = 0; jp < Nx*Ny; jp++){
         rhoEk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp]);
@@ -141,7 +169,56 @@ void Solver::computeEnergy(double *rhoE){
 
 }
 
+void Solver::enforceBCs(){
+
+    if(bcX0 != PERIODIC){
+        int ip = 0;
+        for(int jp = 0; jp < Ny; jp++){
+	    rhok[ip*Ny + jp] = 0.0;
+	    rhoUk[ip*Ny + jp] = 0.0;
+	    rhoVk[ip*Ny + jp] = 0.0;
+	    rhoEk[ip*Ny + jp] = 0.0;
+	}
+    }
+
+    if(bcX1 != PERIODIC){
+        int ip = Nx-1;
+        for(int jp = 0; jp < Ny; jp++){
+	    rhok[ip*Ny + jp] = 0.0;
+	    rhoUk[ip*Ny + jp] = 0.0;
+	    rhoVk[ip*Ny + jp] = 0.0;
+	    rhoEk[ip*Ny + jp] = 0.0;
+	}
+    }
+
+    if(bcY0 != PERIODIC){
+        for(int ip = 0; ip < Nx; ip++){
+            int jp = 0; 
+	    rhok[ip*Ny + jp] = 0.0;
+	    rhoUk[ip*Ny + jp] = 0.0;
+	    rhoVk[ip*Ny + jp] = 0.0;
+	    rhoEk[ip*Ny + jp] = 0.0;
+	}
+    }
+
+
+    if(bcY1 != PERIODIC){
+        for(int ip = 0; ip < Nx; ip++){
+            int jp = Ny-1; 
+	    rhok[ip*Ny + jp] = 0.0;
+	    rhoUk[ip*Ny + jp] = 0.0;
+	    rhoVk[ip*Ny + jp] = 0.0;
+	    rhoEk[ip*Ny + jp] = 0.0;
+	}
+    }
+
+}
+
 void Solver::updateSolutionRKStep1(){
+
+    
+    //Don't want to disturb the BC's if we're non periodic
+    enforceBCs();
 
     //Update the final solution
     for(int jp = 0; jp < Nx*Ny; jp++){
@@ -171,6 +248,9 @@ void Solver::updateSolutionRKStep1(){
 
 void Solver::updateSolutionRKStep2(){
 
+    //Don't want to disturb the BC's if we're non periodic
+    enforceBCs();
+
     //Update the final solution
     for(int jp = 0; jp < Nx*Ny; jp++){
         rho2[jp]  += rhok[jp]/3.0;
@@ -197,6 +277,9 @@ void Solver::updateSolutionRKStep2(){
 }
 
 void Solver::updateSolutionRKStep3(){
+
+    //Don't want to disturb the BC's if we're non periodic
+    enforceBCs();
 
     //Update the final solution
     for(int jp = 0; jp < Nx*Ny; jp++){
@@ -226,6 +309,9 @@ void Solver::updateSolutionRKStep3(){
 
 void Solver::updateSolutionRKStep4(){
 
+    //Don't want to disturb the BC's if we're non periodic
+    enforceBCs();
+
     //Update the final solution
     for(int jp = 0; jp < Nx*Ny; jp++){
         rho2[jp]  += rhok[jp]/6.0;
@@ -234,6 +320,25 @@ void Solver::updateSolutionRKStep4(){
         rhoE2[jp] += rhoEk[jp]/6.0;
     }
 
+}
+
+void Solver::filterCompactY(double *phi, double *phiF){
+
+    if(bcY0 == PERIODIC || bcY1 == PERIODIC){
+        filter->FilterPeriodicY(phi, phiF);
+    }else{
+	filter->FilterFiniteDomainY(phi, phiF);
+    }
+
+}
+
+void Solver::filterCompactX(double *phi, double *phiF){
+
+    if(bcX0 == PERIODIC || bcX1 == PERIODIC){
+        filter->FilterPeriodicX(phi, phiF);
+    }else{
+	filter->FilterFiniteDomainX(phi, phiF);
+    }
 }
 
 void Solver::filterAndUpdateSolution(){
@@ -245,15 +350,15 @@ void Solver::filterAndUpdateSolution(){
 	    double *rhoVTemp = new double[Nx*Ny];
 	    double *rhoETemp = new double[Nx*Ny];
 
-            filter->FilterPeriodicX(rho2,  rhoTemp);
-            filter->FilterPeriodicX(rhoU2, rhoUTemp);
-            filter->FilterPeriodicX(rhoV2, rhoVTemp);
-            filter->FilterPeriodicX(rhoE2, rhoETemp);
+            filterCompactX(rho2,  rhoTemp);
+            filterCompactX(rhoU2, rhoUTemp);
+            filterCompactX(rhoV2, rhoVTemp);
+            filterCompactX(rhoE2, rhoETemp);
 
-            filter->FilterPeriodicY(rhoTemp,  rho1);
-            filter->FilterPeriodicY(rhoUTemp, rhoU1);
-            filter->FilterPeriodicY(rhoVTemp, rhoV1);
-            filter->FilterPeriodicY(rhoETemp, rhoE1);
+            filterCompactY(rhoTemp,  rho1);
+            filterCompactY(rhoUTemp, rhoU1);
+            filterCompactY(rhoVTemp, rhoV1);
+            filterCompactY(rhoETemp, rhoE1);
 
 	    delete[] rhoTemp;
 	    delete[] rhoUTemp;
@@ -266,15 +371,15 @@ void Solver::filterAndUpdateSolution(){
             double *rhoVTemp = new double[Nx*Ny];
             double *rhoETemp = new double[Nx*Ny];
          
-	    filter->FilterPeriodicY(rho2,  rhoTemp);
-            filter->FilterPeriodicY(rhoU2, rhoUTemp);
-            filter->FilterPeriodicY(rhoV2, rhoVTemp);
-            filter->FilterPeriodicY(rhoE2, rhoETemp);
+	    filterCompactY(rho2,  rhoTemp);
+            filterCompactY(rhoU2, rhoUTemp);
+            filterCompactY(rhoV2, rhoVTemp);
+            filterCompactY(rhoE2, rhoETemp);
 
-            filter->FilterPeriodicX(rhoTemp,  rho1);
-            filter->FilterPeriodicX(rhoUTemp, rhoU1);
-            filter->FilterPeriodicX(rhoVTemp, rhoV1);
-            filter->FilterPeriodicX(rhoETemp, rhoE1);
+            filterCompactX(rhoTemp,  rho1);
+            filterCompactX(rhoUTemp, rhoU1);
+            filterCompactX(rhoVTemp, rhoV1);
+            filterCompactX(rhoETemp, rhoE1);
 
             delete[] rhoTemp;
             delete[] rhoUTemp;
@@ -353,6 +458,7 @@ void Solver::dumpSolution(){
         outputFileName = "rhoU.out."; 
         outputFileName.append(to_string(step)); 
         outfile.open(outputFileName);
+        outfile.precision(17);
         for(int jp = 0; jp < Nx; jp++){
             for(int kp = 0; kp < Ny; kp++){
                 outfile << rhoU1[jp*Ny+kp] << " ";
@@ -364,6 +470,7 @@ void Solver::dumpSolution(){
         outputFileName = "rhoV.out."; 
         outputFileName.append(to_string(step)); 
         outfile.open(outputFileName);
+        outfile.precision(17);
         for(int jp = 0; jp < Nx; jp++){
             for(int kp = 0; kp < Ny; kp++){
                 outfile << rhoV1[jp*Ny+kp] << " ";
@@ -375,6 +482,7 @@ void Solver::dumpSolution(){
         outputFileName = "rhoE.out."; 
         outputFileName.append(to_string(step)); 
         outfile.open(outputFileName);
+        outfile.precision(17);
         for(int jp = 0; jp < Nx; jp++){
             for(int kp = 0; kp < Ny; kp++){
                 outfile << rhoE1[jp*Ny+kp]*SOS[jp*Ny+kp] << " ";

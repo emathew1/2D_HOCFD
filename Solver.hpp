@@ -238,6 +238,10 @@ class Solver{
     
     void computeDtFromCFL_advanceTime();
 
+    void computeCompactDY(double *phi, double *dphidy);
+
+    void computeCompactDX(double *phi, double *dphidy);
+
     void computeVelocityTemperatureGradients();
 
     void computeContinuity(double *rhoU, double *rhoV);
@@ -248,6 +252,8 @@ class Solver{
 
     void computeEnergy(double *rhoE);
 
+    void enforceBCs();
+
     void updateSolutionRKStep1();
 
     void updateSolutionRKStep2();
@@ -255,6 +261,10 @@ class Solver{
     void updateSolutionRKStep3();
 
     void updateSolutionRKStep4();
+
+    void filterCompactY(double *phi, double *phiF);
+
+    void filterCompactX(double *phi, double *phiF);
 
     void filterAndUpdateSolution();
 

@@ -54,8 +54,8 @@ void Derivatives::CompactDXPeriodic(double *phi, double *dphidx){
     double *phiTrans = new double[Nx*Ny];
 
     double *dphidxTrans = new double[Nx*Ny];
-    //transposeMatrix(phi, Nx, Ny, phiTrans);
-    transposeMatrix_Fast2(phi, Nx, Ny, phiTrans, 60);
+    transposeMatrix(phi, Nx, Ny, phiTrans);
+    //transposeMatrix_Fast2(phi, Nx, Ny, phiTrans, 60);
 
 
     double RHSvec[Nx];
@@ -67,8 +67,8 @@ void Derivatives::CompactDXPeriodic(double *phi, double *dphidx){
     }
     delete[] phiTrans;
 
-    //transposeMatrix(dphidxTrans, Ny, Nx, dphidx);
-    transposeMatrix_Fast2(dphidxTrans, Ny, Nx, dphidx, 60);
+    transposeMatrix(dphidxTrans, Ny, Nx, dphidx);
+    //transposeMatrix_Fast2(dphidxTrans, Ny, Nx, dphidx, 60);
     delete[] dphidxTrans;
 }
 
@@ -124,8 +124,8 @@ void Derivatives::CompactDXDirichlet(double *phi, double *dphidx){
     double *phiTrans = new double[Nx*Ny];
 
     double *dphidxTrans = new double[Nx*Ny];
-    //transposeMatrix(phi, Nx, Ny, phiTrans);
-    transposeMatrix_Fast2(phi, Nx, Ny, phiTrans, 60);
+    transposeMatrix(phi, Nx, Ny, phiTrans);
+    //transposeMatrix_Fast2(phi, Nx, Ny, phiTrans, 60);
 
 
     double RHSvec[Nx];
@@ -140,8 +140,8 @@ void Derivatives::CompactDXDirichlet(double *phi, double *dphidx){
     delete[] phiTrans;
     delete[] work;
 
-    //transposeMatrix(dphidxTrans, Ny, Nx, dphidx);
-    transposeMatrix_Fast2(dphidxTrans, Ny, Nx, dphidx, 60);
+    transposeMatrix(dphidxTrans, Ny, Nx, dphidx);
+    //transposeMatrix_Fast2(dphidxTrans, Ny, Nx, dphidx, 60);
     delete[] dphidxTrans;
 }
 

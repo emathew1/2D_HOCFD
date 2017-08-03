@@ -22,21 +22,21 @@ int main(int argc, char *argv[]){
     cout << "--------------------------------------" << endl;
     cout << endl;
 
-    int Nx = 10; double Lx = 1; //2*M_PI - 2*M_PI/((double)Nx);
-    int Ny = 10; double Ly = 1; //2*M_PI - 2*M_PI/((double)Ny);
+    int Nx = 1000; double Lx = 4.0;//2*M_PI - 2*M_PI/((double)Nx);
+    int Ny = 30; double Ly = 0.1;//2*M_PI - 2*M_PI/((double)Ny);
 
     Solver *solver = new Solver(Nx, Ny, Lx, Ly);
 
     //Set some of the solver parameters
-    solver->timeStep    = 100;
-    solver->timeEnd     = 10.0;
-    solver->filterStep  = 5;
+    solver->timeStep    = 100000;
+    solver->timeEnd     = 0.25;
+    solver->filterStep  = 1;
     solver->checkStep   = 1;
     solver->outputStep  = 100;
-    solver->CFL		= 0.3;
+    solver->CFL		= 0.25;
 
     //Change fluid properties
-    solver->idealGas->mu_ref = 0.00001;
+    solver->idealGas->mu_ref = 0.0000001;
 
     //Set the BC's for the solver
     solver->bcX0 = Solver::SPONGE;
@@ -45,29 +45,83 @@ int main(int argc, char *argv[]){
     solver->bcY1 = Solver::PERIODIC;
     solver->setBCForDerivatives();
 
+    //Need to set alpha = 0 at sponge ends
+
     //Allocate an initial condition
     for(int ip = 0; ip < Nx; ip++){
 	for(int jp = 0; jp < Ny; jp++){
-	    solver->p0[ip*Ny + jp]   = 1.0/1.4;
-	    solver->U0[ip*Ny + jp]   = solver->x[ip];
-	    solver->V0[ip*Ny + jp]   = solver->y[jp];
-	    solver->rho0[ip*Ny + jp] = 1.0;
+	    if(solver->x[ip] < 2.0){
+	        solver->p0[ip*Ny + jp]   = 1.0/solver->idealGas->gamma;
+	        solver->U0[ip*Ny + jp]   = 0.0;
+	        solver->V0[ip*Ny + jp]   = 0.0;
+	        solver->rho0[ip*Ny + jp] = 1.0;
+	    }else{
+	        solver->p0[ip*Ny + jp]   = 0.1/solver->idealGas->gamma;
+	        solver->U0[ip*Ny + jp]   = 0.0;
+	        solver->V0[ip*Ny + jp]   = 0.0;
+	        solver->rho0[ip*Ny + jp] = 0.125;
+	    }
 	}
     }
 
     solver->applyInitialCondition();
 
-    solver->derivatives->CompactDYPeriodic(solver->U, solver->Uy);
+/*
+        cout.precision(17);
 
-    for(int ip = 0; ip < Nx; ip++){
-	for(int jp = 0; jp < Ny; jp++){
-	    cout << solver->Uy[ip*Ny + jp] << " ";
-	}
-	cout << endl;
+
+    for(int ip = 0; ip < Ny; ip++){
+        cout <<  solver->filter->alphaFy[ip] << endl;;
     }
     cout << endl;
 
-/*
+    solver->filter->calcFilterCoefficients(solver->filter->alphaFx);
+    double RHSvec[solver->Nx];
+    double *work = new double[solver->Nx];
+
+    double *test = new double[solver->Nx];
+    for(int ip = 0; ip < Nx; ip++){
+	if(ip < (double)Nx/2.0-0.5){
+	    test[ip] = (double)ip;
+	}else{
+	    test[ip] = 0.0;
+	}
+    }    
+
+    for(int ip = 0; ip < Nx; ip++){
+	cout << test[ip] << endl;
+    } 
+    cout << endl;
+
+    //solver->filter->multRHSFilterFiniteDomain(test, Nx, RHSvec);
+    solver->filter->multRHSFilter(test, Nx, RHSvec);
+
+    for(int ip = 0; ip < Nx; ip++){
+	cout <<  RHSvec[ip] << endl;
+    }
+    cout << endl;
+
+
+    double *filterTest = new double[solver->Nx];
+    //solveTri(solver->filter->offFx, solver->filter->diagFx, solver->filter->offFx, RHSvec, filterTest, work, Nx);
+    cyclic(solver->filter->offFy, solver->filter->diagFy, solver->filter->offFy, 0.49,0.49,  RHSvec, Ny, filterTest);
+
+
+
+    for(int ip = 0; ip < Nx; ip++){
+	cout << filterTest[ip] << endl;
+    }
+    double *rhoTemp  = new double[Nx*Ny];
+
+    solver->filterCompactX(solver->rho1, rhoTemp);
+    memcpy(solver->rho1, rhoTemp, Nx*Ny*(sizeof(double)));
+    solver->computeVelocityTemperatureGradients();
+    solver->computeXMomentum(solver->rhoU1, solver->rhoV1);
+
+    memcpy(solver->rhoU1, solver->rhoUk, Nx*Ny*(sizeof(double))); 
+*/ 
+    solver->dumpSolution();
+
     while(!solver->endFlag){
 
         //At the beginning of every step
@@ -88,7 +142,6 @@ int main(int argc, char *argv[]){
         solver->computeEnergy(solver->rhoE1);
     
         solver->updateSolutionRKStep1();
-
 
 
 	//=======================
@@ -141,7 +194,7 @@ int main(int argc, char *argv[]){
         solver->computeEnergy(solver->rhoE1k);
 
         solver->updateSolutionRKStep4();
-
+	
 
 	//=======================
         // End of timestep stuff
@@ -162,7 +215,5 @@ int main(int argc, char *argv[]){
         solver->checkEnd();
 
     }
-*/
-
     return 0;
 }
