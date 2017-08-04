@@ -81,6 +81,20 @@ class Solver{
     double *rhsDxIn; double *rhsDxOut;
     double *rhsDyIn; double *rhsDyOut;
 
+    //Sponge Stuff
+    double spongeAvgT;
+    double spongeEpsP;
+    double *spongeAvgRho;
+    double *spongeAvgRhoU;
+    double *spongeAvgRhoV;
+    double *spongeAvgRhoE;
+    double *spongeSigma;
+    double spongeStrength;
+    double spongeLengthX0;
+    double spongeLengthX1;
+    double spongeLengthY0;
+    double spongeLengthY1;
+
     //Default Constructor
     Solver(){
         //Initial Conditions
@@ -134,6 +148,20 @@ class Solver{
 	bcY0 = PERIODIC;
 	bcY1 = PERIODIC;
 
+        //Sponge Stuff
+        spongeAvgT = 0;
+        spongeEpsP = 0;
+ 	spongeStrength = 0;
+        spongeLengthX0 = 0;
+        spongeLengthX1 = 0;
+        spongeLengthY0 = 0;
+        spongeLengthY1 = 0;
+       
+	spongeAvgRho = NULL;
+        spongeAvgRhoU = NULL;
+        spongeAvgRhoV = NULL;
+        spongeAvgRhoE = NULL;
+        spongeSigma = NULL;
     }
 
     //Array initializing constructor
@@ -229,10 +257,30 @@ class Solver{
         t1 = std::chrono::system_clock::now();
         t2 = std::chrono::system_clock::now();
 
+        //Sponge Stuff
+        spongeAvgT = 0.0;
+        spongeEpsP = 0.0;
+ 	spongeStrength = 0.0;
+        spongeLengthX0 = 0;
+        spongeLengthX1 = 0;
+        spongeLengthY0 = 0;
+        spongeLengthY1 = 0;
+      
+ 
+	spongeAvgRho = NULL;
+        spongeAvgRhoU = NULL;
+        spongeAvgRhoV = NULL;
+        spongeAvgRhoE = NULL;
+        spongeSigma = NULL;
+        
     }
 
 
     void setBCForDerivatives();
+
+    void initSpongeStuff();
+
+    void calcSpongeSource(double *phi, double *spongeAvgPhi, double *spongeSource);
 
     void applyInitialCondition();
     

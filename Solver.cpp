@@ -32,7 +32,81 @@ void Solver::setBCForDerivatives(){
 	derivatives->offy1[Ny-1] = derivatives->alpha1;
 	filter->alphaFy[Ny-1] = 0.0;
 	filter->offFy1[Ny-1] = 0.0;
+    }
+
+    if(bcY0 == SPONGE || bcY1 == SPONGE || bcX0 == SPONGE || bcX1 == SPONGE){ 
+        //Sponge Stuff
+        spongeAvgT = 1.0;
+        spongeEpsP = 0.005;
+        spongeAvgRho = new double[Nx*Ny];
+        spongeAvgRhoU = new double[Nx*Ny];
+        spongeAvgRhoV = new double[Nx*Ny];
+        spongeAvgRhoE = new double[Nx*Ny];
+        spongeSigma = new double[Nx*Ny];;
+        spongeStrength = 12.0;
+        spongeLengthX0 = 0;   
+        spongeLengthX1 = 0;   
+        spongeLengthY0 = 0;   
+        spongeLengthY1 = 0;   
+    }
+
+}
+
+void Solver::initSpongeStuff(){
+
+
+    //Initialize the sponge distribution at the edges of the domains with sponges
+    for(int ip = 0; ip < Nx; ip++){
+	for(int jp = 0; jp < Ny; jp++){
+
+	    //Initialize sponge strength as zero everywhere
+	    spongeSigma[ip*Ny + jp] = 0.0;	
+
+
+	    if(bcX0 == SPONGE){
+		if(x[ip] < spongeLengthX0 && spongeLengthX0 != 0){
+		    double spongeX = (spongeLengthX0-x[ip])/spongeLengthX0;
+		    spongeSigma[ip*Ny + jp] = spongeStrength*(0.068*pow(spongeX, 2.0) + 0.845*pow(spongeX, 8.0));
+		}
+	    }
+
+	    if(bcX1 == SPONGE){
+		if(x[ip] > (Lx - spongeLengthX1) && spongeLengthX1 != 0){
+		    double spongeX = (x[ip] - (Lx - spongeLengthX1))/spongeLengthX1;
+		    spongeSigma[ip*Ny + jp] = spongeStrength*(0.068*pow(spongeX, 2.0) + 0.845*pow(spongeX, 8.0));
+		}
+	    }
+
+	    if(bcY0 == SPONGE){
+		if(y[jp] < spongeLengthY0 && spongeLengthY0 != 0){
+		    double spongeY = (spongeLengthY0-y[jp])/spongeLengthY0;
+		    spongeSigma[ip*Ny + jp] = spongeStrength*(0.068*pow(spongeY, 2.0) + 0.845*pow(spongeY, 8.0));
+		}
+	    }
+
+	    if(bcY1 == SPONGE){
+		if(y[jp] > (Ly - spongeLengthY1) && spongeLengthY1 != 0){
+		    double spongeY = (y[jp] - (Ly - spongeLengthY1))/spongeLengthY1;
+		    spongeSigma[ip*Ny + jp] = spongeStrength*(0.068*pow(spongeY, 2.0) + 0.845*pow(spongeY, 8.0));
+		}
+	    } 
+	}
     }   
+
+   //Initialize the sponge average as the initial condition
+   for(int ip = 0; ip < Nx*Ny; ip++){
+       spongeAvgRho[ip]  = rho1[ip];   
+       spongeAvgRhoU[ip] = rhoU1[ip];   
+       spongeAvgRhoV[ip] = rhoV1[ip];   
+       spongeAvgRhoE[ip] = rhoE1[ip];   
+   }
+
+}
+
+void Solver::calcSpongeSource(double *phi, double *spongeAvgPhi, double *spongeSource){
+   for(int ip = 0; ip < Nx*Ny; ip++){
+       spongeSource[ip] = spongeSigma[ip]*(spongeAvgPhi[ip] - phi[ip]);
+   }
 }
 
 void Solver::applyInitialCondition(){
@@ -108,7 +182,7 @@ void Solver::computeVelocityTemperatureGradients(){
 }
 
 void Solver::computeContinuity(double *rhoU, double *rhoV){
-   
+
     computeCompactDX(rhoU, rhsDxOut);
     computeCompactDY(rhoV, rhsDyOut);
 
@@ -517,3 +591,4 @@ void Solver::checkEnd(){
     }
 
 }
+

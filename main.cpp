@@ -66,6 +66,13 @@ int main(int argc, char *argv[]){
 
     solver->applyInitialCondition();
 
+
+    //Provide non-standard attributes for the sponge layers
+    solver->spongeAvgT = 0.5;
+    solver->spongeLengthX0 = 0.5;
+    solver->spongeLengthX1 = 0.5;
+    solver->initSpongeStuff();
+
 /*
         cout.precision(17);
 
