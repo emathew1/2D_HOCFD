@@ -140,6 +140,8 @@ int main(int argc, char *argv[]){
 
         solver->computeVelocityTemperatureGradients();
 
+	solver->computeSpongeSource(solver->rho1, solver->rhoU1, solver->rhoV1, solver->rhoE1);	
+
         solver->computeContinuity(solver->rhoU1, solver->rhoV1);
 
         solver->computeXMomentum(solver->rhoU1, solver->rhoV1);
@@ -156,7 +158,8 @@ int main(int argc, char *argv[]){
 	//=======================
 
         solver->computeVelocityTemperatureGradients();
- 
+	
+	solver->computeSpongeSource(solver->rho1k, solver->rhoU1k, solver->rhoV1k, solver->rhoE1k);	
         solver->computeContinuity(solver->rhoU1k, solver->rhoV1k);
 
         solver->computeXMomentum(solver->rhoU1k, solver->rhoV1k);
@@ -174,7 +177,8 @@ int main(int argc, char *argv[]){
 	//=======================
 
         solver->computeVelocityTemperatureGradients();
-
+	
+	solver->computeSpongeSource(solver->rho1k, solver->rhoU1k, solver->rhoV1k, solver->rhoE1k);	
         solver->computeContinuity(solver->rhoU1k, solver->rhoV1k);
 
         solver->computeXMomentum(solver->rhoU1k, solver->rhoV1k);
@@ -191,7 +195,8 @@ int main(int argc, char *argv[]){
 	//=======================
 
         solver->computeVelocityTemperatureGradients();
-
+	
+	solver->computeSpongeSource(solver->rho1k, solver->rhoU1k, solver->rhoV1k, solver->rhoE1k);	
         solver->computeContinuity(solver->rhoU1k, solver->rhoV1k);
 
         solver->computeXMomentum(solver->rhoU1k, solver->rhoV1k);
@@ -212,6 +217,9 @@ int main(int argc, char *argv[]){
 
         // Update primative and temperature
         solver->updateEndOfStepPrimAndTemp();
+
+	// Update sponge BC averages and pressure
+	solver->updateSpongeBCs();
 
         solver->checkSolution();
 

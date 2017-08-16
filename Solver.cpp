@@ -38,11 +38,15 @@ void Solver::setBCForDerivatives(){
         //Sponge Stuff
         spongeAvgT = 1.0;
         spongeEpsP = 0.005;
-        spongeAvgRho = new double[Nx*Ny];
-        spongeAvgRhoU = new double[Nx*Ny];
-        spongeAvgRhoV = new double[Nx*Ny];
-        spongeAvgRhoE = new double[Nx*Ny];
-        spongeSigma = new double[Nx*Ny];;
+        spongeAvgRho     = new double[Nx*Ny];
+	spongeRhoSource  = new double[Nx*Ny];
+        spongeAvgRhoU    = new double[Nx*Ny];
+	spongeRhoUSource = new double[Nx*Ny];
+        spongeAvgRhoV    = new double[Nx*Ny];
+	spongeRhoVSource = new double[Nx*Ny];
+        spongeAvgRhoE    = new double[Nx*Ny];
+	spongeRhoESource = new double[Nx*Ny];
+        spongeSigma 	 = new double[Nx*Ny];
         spongeStrength = 12.0;
         spongeLengthX0 = 0;   
         spongeLengthX1 = 0;   
@@ -103,9 +107,23 @@ void Solver::initSpongeStuff(){
 
 }
 
-void Solver::calcSpongeSource(double *phi, double *spongeAvgPhi, double *spongeSource){
-   for(int ip = 0; ip < Nx*Ny; ip++){
-       spongeSource[ip] = spongeSigma[ip]*(spongeAvgPhi[ip] - phi[ip]);
+void Solver::computeSpongeSource(double *rhoIn, double *rhoUIn, double *rhoVIn, double *rhoEIn){
+
+
+   if(bcX0 == SPONGE || bcX1 == SPONGE || bcY0 == SPONGE || bcY1 == SPONGE){
+       for(int ip = 0; ip < Nx*Ny; ip++){
+           spongeRhoSource[ip]  = spongeSigma[ip]*(spongeAvgRho[ip]  - rhoIn[ip]);
+           spongeRhoUSource[ip] = spongeSigma[ip]*(spongeAvgRhoU[ip] - rhoUIn[ip]);
+           spongeRhoVSource[ip] = spongeSigma[ip]*(spongeAvgRhoV[ip] - rhoVIn[ip]);
+           spongeRhoESource[ip] = spongeSigma[ip]*(spongeAvgRhoE[ip] - rhoEIn[ip]);
+       }
+   }else{
+       for(int ip = 0; ip < Nx*Ny; ip++){
+           spongeRhoSource[ip]  = 0.0;
+           spongeRhoUSource[ip] = 0.0; 
+           spongeRhoVSource[ip] = 0.0; 
+           spongeRhoESource[ip] = 0.0;
+       }
    }
 }
 
@@ -187,7 +205,7 @@ void Solver::computeContinuity(double *rhoU, double *rhoV){
     computeCompactDY(rhoV, rhsDyOut);
 
     for(int ip = 0; ip < Nx*Ny; ip++){
-	rhok[ip] = -dt*(rhsDxOut[ip] + rhsDyOut[ip]);
+	rhok[ip] = dt*(-rhsDxOut[ip] -rhsDyOut[ip] + spongeRhoSource[ip]);
     }
 
 }
@@ -203,7 +221,7 @@ void Solver::computeXMomentum(double *rhoU, double *rhoV){
     computeCompactDY(rhsDyIn, rhsDyOut);
     
     for(int jp = 0; jp < Nx*Ny; jp++){
-	rhoUk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp]);
+	rhoUk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp] + spongeRhoUSource[jp]);
     }
 }
 
@@ -218,7 +236,7 @@ void Solver::computeYMomentum(double *rhoU, double *rhoV){
     computeCompactDY(rhsDyIn, rhsDyOut);
 
     for(int jp = 0; jp < Nx*Ny; jp++){
-        rhoVk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp]);
+        rhoVk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp] + spongeRhoVSource[jp]);
     }
 }
 
@@ -237,7 +255,7 @@ void Solver::computeEnergy(double *rhoE){
     computeCompactDY(rhsDyIn, rhsDyOut);
 
     for(int jp = 0; jp < Nx*Ny; jp++){
-        rhoEk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp]);
+        rhoEk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp] + spongeRhoESource[jp]);
     }
 
 
@@ -482,6 +500,40 @@ void Solver::updateEndOfStepPrimAndTemp(){
     idealGas->solveMu(T, mu);
     idealGas->solveSOS(rho1, p, SOS);
 
+}
+
+void Solver::updateSpongeBCs(){
+
+    double eps = 1.0/(spongeAvgT/dt + 1.0);
+  /*  
+    for(int ip = 0; ip < Nx*Ny; ip++){
+        spongeAvgRho[ip]  += eps*(rho1[ip]  - spongeAvgRho[ip]);
+        spongeAvgRhoU[ip] += eps*(rhoU1[ip] - spongeAvgRhoU[ip]);
+        spongeAvgRhoV[ip] += eps*(rhoV1[ip] - spongeAvgRhoV[ip]);
+        spongeAvgRhoE[ip] += eps*(rhoE1[ip] - spongeAvgRhoE[ip]);
+
+	spongeAvgRhoE[ip] = spongeEpsP*spongeAvgRhoE[ip] + 
+	    (1.0-spongeEpsP)*(spongeP/(1.0-idealGas->gamma) + 0.5*(pow(spongeAvgRhoU[ip],2.0) + 
+	    pow(spongeAvgRhoV[ip],2.0))/spongeAvgRho[ip]);
+    }
+    //Need to set boundary conditions on the sponge for the next step
+
+    if(bcX0 == SPONGE){
+
+    }
+
+    if(bcX1 == SPONGE){
+
+    }
+
+    if(bcY0 == SPONGE){
+
+    }
+
+    if(bcY1 == SPONGE){
+
+    }
+    */
 }
 
 void Solver::checkSolution(){

@@ -84,10 +84,15 @@ class Solver{
     //Sponge Stuff
     double spongeAvgT;
     double spongeEpsP;
+    double spongeP;
     double *spongeAvgRho;
+    double *spongeRhoSource;
     double *spongeAvgRhoU;
+    double *spongeRhoUSource;
     double *spongeAvgRhoV;
+    double *spongeRhoVSource;
     double *spongeAvgRhoE;
+    double *spongeRhoESource;
     double *spongeSigma;
     double spongeStrength;
     double spongeLengthX0;
@@ -151,17 +156,22 @@ class Solver{
         //Sponge Stuff
         spongeAvgT = 0;
         spongeEpsP = 0;
+	spongeP    = 0;
  	spongeStrength = 0;
         spongeLengthX0 = 0;
         spongeLengthX1 = 0;
         spongeLengthY0 = 0;
         spongeLengthY1 = 0;
        
-	spongeAvgRho = NULL;
-        spongeAvgRhoU = NULL;
-        spongeAvgRhoV = NULL;
-        spongeAvgRhoE = NULL;
-        spongeSigma = NULL;
+	spongeAvgRho 	 = NULL;
+	spongeRhoSource  = NULL;
+        spongeAvgRhoU 	 = NULL;
+	spongeRhoUSource = NULL;
+        spongeAvgRhoV 	 = NULL;
+	spongeRhoVSource = NULL;
+        spongeAvgRhoE 	 = NULL;
+	spongeRhoESource = NULL;
+        spongeSigma 	 = NULL;
     }
 
     //Array initializing constructor
@@ -260,6 +270,7 @@ class Solver{
         //Sponge Stuff
         spongeAvgT = 0.0;
         spongeEpsP = 0.0;
+        spongeP    = 1/idealGas->gamma;
  	spongeStrength = 0.0;
         spongeLengthX0 = 0;
         spongeLengthX1 = 0;
@@ -267,10 +278,14 @@ class Solver{
         spongeLengthY1 = 0;
       
  
-	spongeAvgRho = NULL;
-        spongeAvgRhoU = NULL;
-        spongeAvgRhoV = NULL;
-        spongeAvgRhoE = NULL;
+	spongeAvgRho 	 = NULL;
+	spongeRhoSource  = NULL;
+        spongeAvgRhoU 	 = NULL;
+	spongeRhoUSource = NULL;
+        spongeAvgRhoV 	 = NULL;
+	spongeRhoVSource = NULL;
+        spongeAvgRhoE 	 = NULL;
+	spongeRhoESource = NULL;
         spongeSigma = NULL;
         
     }
@@ -280,7 +295,7 @@ class Solver{
 
     void initSpongeStuff();
 
-    void calcSpongeSource(double *phi, double *spongeAvgPhi, double *spongeSource);
+    void computeSpongeSource(double *rhoIn, double *rhoUIn, double *rhoVIn, double *rhoEIn);
 
     void applyInitialCondition();
     
@@ -317,6 +332,8 @@ class Solver{
     void filterAndUpdateSolution();
 
     void updateEndOfStepPrimAndTemp();
+
+    void updateSpongeBCs();
 
     void checkSolution();
 
