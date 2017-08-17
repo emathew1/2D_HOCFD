@@ -505,7 +505,7 @@ void Solver::updateEndOfStepPrimAndTemp(){
 void Solver::updateSpongeBCs(){
 
     double eps = 1.0/(spongeAvgT/dt + 1.0);
-  /*  
+   
     for(int ip = 0; ip < Nx*Ny; ip++){
         spongeAvgRho[ip]  += eps*(rho1[ip]  - spongeAvgRho[ip]);
         spongeAvgRhoU[ip] += eps*(rhoU1[ip] - spongeAvgRhoU[ip]);
@@ -519,21 +519,44 @@ void Solver::updateSpongeBCs(){
     //Need to set boundary conditions on the sponge for the next step
 
     if(bcX0 == SPONGE){
-
+	for(int ip = 0; ip < Ny; ip++){
+	    int ii = ip*Nx;
+	    rho1[ii]  = spongeAvgRho[ii];
+	    rhoU1[ii] = spongeAvgRhoU[ii];
+	    rhoV1[ii] = spongeAvgRhoV[ii];
+	    rhoE1[ii] = spongeAvgRhoE[ii];
+	}
     }
 
     if(bcX1 == SPONGE){
-
+	for(int ip = 0; ip < Ny; ip++){
+	    int ii = ip*Nx + (Ny-1);
+	    rho1[ii]  = spongeAvgRho[ii];
+	    rhoU1[ii] = spongeAvgRhoU[ii];
+	    rhoV1[ii] = spongeAvgRhoV[ii];
+	    rhoE1[ii] = spongeAvgRhoE[ii];
+	}
     }
 
     if(bcY0 == SPONGE){
-
+	for(int ip = 0; ip < Nx; ip++){
+	    int ii = ip;
+	    rho1[ii]  = spongeAvgRho[ii];
+	    rhoU1[ii] = spongeAvgRhoU[ii];
+	    rhoV1[ii] = spongeAvgRhoV[ii];
+	    rhoE1[ii] = spongeAvgRhoE[ii];
+	}
     }
 
     if(bcY1 == SPONGE){
-
+	for(int ip = 0; ip < Nx; ip++){
+	    int ii = (Ny-1)*Nx + ip;
+	    rho1[ii]  = spongeAvgRho[ii];
+	    rhoU1[ii] = spongeAvgRhoU[ii];
+	    rhoV1[ii] = spongeAvgRhoV[ii];
+	    rhoE1[ii] = spongeAvgRhoE[ii];
+	}
     }
-    */
 }
 
 void Solver::checkSolution(){
