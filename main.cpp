@@ -22,8 +22,8 @@ int main(int argc, char *argv[]){
     cout << "--------------------------------------" << endl;
     cout << endl;
 
-    int Nx = 1000; double Lx = 4.0;//2*M_PI - 2*M_PI/((double)Nx);
-    int Ny = 30; double Ly = 0.1;//2*M_PI - 2*M_PI/((double)Ny);
+    int Nx = 200; double Lx = 4.0;//2*M_PI - 2*M_PI/((double)Nx);
+    int Ny = 200; double Ly = 4.0;//2*M_PI - 2*M_PI/((double)Ny);
 
     Solver *solver = new Solver(Nx, Ny, Lx, Ly);
 
@@ -39,8 +39,8 @@ int main(int argc, char *argv[]){
     solver->idealGas->mu_ref = 0.0000001;
 
     //Set the BC's for the solver
-    solver->bcX0 = Solver::SPONGE;
-    solver->bcX1 = Solver::SPONGE;
+    solver->bcX0 = Solver::PERIODIC;
+    solver->bcX1 = Solver::PERIODIC;
     solver->bcY0 = Solver::PERIODIC;
     solver->bcY1 = Solver::PERIODIC;
     solver->setBCForDerivatives();
@@ -50,6 +50,13 @@ int main(int argc, char *argv[]){
     //Allocate an initial condition
     for(int ip = 0; ip < Nx; ip++){
 	for(int jp = 0; jp < Ny; jp++){
+	    solver->U0[ip*Ny + jp] = 0.0;
+	    solver->V0[ip*Ny + jp] = 0.0;
+	    solver->p0[ip*Ny + jp] = 1/solver->idealGas->gamma + 
+			10.0*exp(-(pow(solver->x[ip]-2.0,2.0) + pow(solver->y[jp] - 2.0,2.0))/0.25);
+	    solver->rho0[ip*Ny + jp] = 1.0;
+
+/*
 	    if(solver->x[ip] < 2.0){
 	        solver->p0[ip*Ny + jp]   = 1.0/solver->idealGas->gamma;
 	        solver->U0[ip*Ny + jp]   = 0.0;
@@ -61,17 +68,22 @@ int main(int argc, char *argv[]){
 	        solver->V0[ip*Ny + jp]   = 0.0;
 	        solver->rho0[ip*Ny + jp] = 0.125;
 	    }
+*/
 	}
     }
 
     solver->applyInitialCondition();
 
-
+/*
     //Provide non-standard attributes for the sponge layers
-    solver->spongeAvgT = 0.5;
-    solver->spongeLengthX0 = 0.5;
-    solver->spongeLengthX1 = 0.5;
+    solver->spongeAvgT = 10.0;
+    solver->spongeLengthX0 = 0.75;
+    solver->spongeLengthY0 = 0.75;
+    solver->spongeLengthX1 = 0.75;
+    solver->spongeLengthY1 = 0.75;
+    solver->spongeP = 1.0/solver->idealGas->gamma;
     solver->initSpongeStuff();
+*/
 
 /*
         cout.precision(17);
@@ -134,6 +146,7 @@ int main(int argc, char *argv[]){
         //At the beginning of every step
         solver->computeDtFromCFL_advanceTime();
 
+
 	//=======================
         // RK Step 1
 	//=======================
@@ -142,6 +155,7 @@ int main(int argc, char *argv[]){
 
 	solver->computeSpongeSource(solver->rho1, solver->rhoU1, solver->rhoV1, solver->rhoE1);	
 
+
         solver->computeContinuity(solver->rhoU1, solver->rhoV1);
 
         solver->computeXMomentum(solver->rhoU1, solver->rhoV1);
@@ -149,6 +163,8 @@ int main(int argc, char *argv[]){
         solver->computeYMomentum(solver->rhoU1, solver->rhoV1);
 
         solver->computeEnergy(solver->rhoE1);
+
+	solver->computeRhs();
     
         solver->updateSolutionRKStep1();
 
@@ -168,6 +184,8 @@ int main(int argc, char *argv[]){
 
         solver->computeEnergy(solver->rhoE1k);
  
+	solver->computeRhs();
+
         solver->updateSolutionRKStep2();
 
 
@@ -187,6 +205,8 @@ int main(int argc, char *argv[]){
 
         solver->computeEnergy(solver->rhoE1k);
 
+	solver->computeRhs();
+
         solver->updateSolutionRKStep3();
 
 
@@ -204,6 +224,8 @@ int main(int argc, char *argv[]){
         solver->computeYMomentum(solver->rhoU1k, solver->rhoV1k);
 
         solver->computeEnergy(solver->rhoE1k);
+
+	solver->computeRhs();
 
         solver->updateSolutionRKStep4();
 	

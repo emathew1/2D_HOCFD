@@ -315,6 +315,8 @@ class Solver{
 
     void computeEnergy(double *rhoE);
 
+    void computeRhs();
+
     void enforceBCs();
 
     void updateSolutionRKStep1();

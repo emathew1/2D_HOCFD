@@ -111,18 +111,12 @@ void Solver::computeSpongeSource(double *rhoIn, double *rhoUIn, double *rhoVIn, 
 
 
    if(bcX0 == SPONGE || bcX1 == SPONGE || bcY0 == SPONGE || bcY1 == SPONGE){
+       cout << "TEST" << endl;
        for(int ip = 0; ip < Nx*Ny; ip++){
            spongeRhoSource[ip]  = spongeSigma[ip]*(spongeAvgRho[ip]  - rhoIn[ip]);
            spongeRhoUSource[ip] = spongeSigma[ip]*(spongeAvgRhoU[ip] - rhoUIn[ip]);
            spongeRhoVSource[ip] = spongeSigma[ip]*(spongeAvgRhoV[ip] - rhoVIn[ip]);
            spongeRhoESource[ip] = spongeSigma[ip]*(spongeAvgRhoE[ip] - rhoEIn[ip]);
-       }
-   }else{
-       for(int ip = 0; ip < Nx*Ny; ip++){
-           spongeRhoSource[ip]  = 0.0;
-           spongeRhoUSource[ip] = 0.0; 
-           spongeRhoVSource[ip] = 0.0; 
-           spongeRhoESource[ip] = 0.0;
        }
    }
 }
@@ -205,7 +199,7 @@ void Solver::computeContinuity(double *rhoU, double *rhoV){
     computeCompactDY(rhoV, rhsDyOut);
 
     for(int ip = 0; ip < Nx*Ny; ip++){
-	rhok[ip] = dt*(-rhsDxOut[ip] -rhsDyOut[ip] + spongeRhoSource[ip]);
+	rhok[ip] = dt*(-rhsDxOut[ip] -rhsDyOut[ip]);
     }
 
 }
@@ -221,7 +215,7 @@ void Solver::computeXMomentum(double *rhoU, double *rhoV){
     computeCompactDY(rhsDyIn, rhsDyOut);
     
     for(int jp = 0; jp < Nx*Ny; jp++){
-	rhoUk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp] + spongeRhoUSource[jp]);
+	rhoUk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp]);
     }
 }
 
@@ -236,7 +230,7 @@ void Solver::computeYMomentum(double *rhoU, double *rhoV){
     computeCompactDY(rhsDyIn, rhsDyOut);
 
     for(int jp = 0; jp < Nx*Ny; jp++){
-        rhoVk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp] + spongeRhoVSource[jp]);
+        rhoVk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp]);
     }
 }
 
@@ -255,9 +249,22 @@ void Solver::computeEnergy(double *rhoE){
     computeCompactDY(rhsDyIn, rhsDyOut);
 
     for(int jp = 0; jp < Nx*Ny; jp++){
-        rhoEk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp] + spongeRhoESource[jp]);
+        rhoEk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp]);
     }
 
+
+}
+
+void Solver::computeRhs(){
+
+    if(bcX0 == SPONGE || bcX1 == SPONGE || bcY0 == SPONGE || bcY1 == SPONGE){
+        for(int jp = 0; jp < Nx*Ny; jp++){
+	    rhok[jp]  += dt*spongeRhoSource[jp];	
+	    rhoUk[jp] += dt*spongeRhoUSource[jp];	
+	    rhoVk[jp] += dt*spongeRhoVSource[jp];	
+	    rhoEk[jp] += dt*spongeRhoESource[jp];	
+        }
+    }
 
 }
 
@@ -504,58 +511,62 @@ void Solver::updateEndOfStepPrimAndTemp(){
 
 void Solver::updateSpongeBCs(){
 
-    double eps = 1.0/(spongeAvgT/dt + 1.0);
+    if(bcX0 == SPONGE || bcX1 == SPONGE || bcY0 == SPONGE || bcY1 == SPONGE){
+
+        double eps = 1.0/(spongeAvgT/dt + 1.0);
    
-    for(int ip = 0; ip < Nx*Ny; ip++){
-        spongeAvgRho[ip]  += eps*(rho1[ip]  - spongeAvgRho[ip]);
-        spongeAvgRhoU[ip] += eps*(rhoU1[ip] - spongeAvgRhoU[ip]);
-        spongeAvgRhoV[ip] += eps*(rhoV1[ip] - spongeAvgRhoV[ip]);
-        spongeAvgRhoE[ip] += eps*(rhoE1[ip] - spongeAvgRhoE[ip]);
+    	for(int ip = 0; ip < Nx*Ny; ip++){
+            spongeAvgRho[ip]  += eps*(rho1[ip]  - spongeAvgRho[ip]);
+            spongeAvgRhoU[ip] += eps*(rhoU1[ip] - spongeAvgRhoU[ip]);
+            spongeAvgRhoV[ip] += eps*(rhoV1[ip] - spongeAvgRhoV[ip]);
+            spongeAvgRhoE[ip] += eps*(rhoE1[ip] - spongeAvgRhoE[ip]);
 
-	spongeAvgRhoE[ip] = spongeEpsP*spongeAvgRhoE[ip] + 
-	    (1.0-spongeEpsP)*(spongeP/(1.0-idealGas->gamma) + 0.5*(pow(spongeAvgRhoU[ip],2.0) + 
-	    pow(spongeAvgRhoV[ip],2.0))/spongeAvgRho[ip]);
-    }
-    //Need to set boundary conditions on the sponge for the next step
+	    spongeAvgRhoE[ip] = spongeEpsP*spongeAvgRhoE[ip] + 
+	        (1.0-spongeEpsP)*(spongeP/(1.0-idealGas->gamma) + 0.5*(pow(spongeAvgRhoU[ip],2.0) + 
+	        pow(spongeAvgRhoV[ip],2.0))/spongeAvgRho[ip]);
+        }
+        //Need to set boundary conditions on the sponge for the next step
 
-    if(bcX0 == SPONGE){
-	for(int ip = 0; ip < Ny; ip++){
-	    int ii = ip*Nx;
-	    rho1[ii]  = spongeAvgRho[ii];
-	    rhoU1[ii] = spongeAvgRhoU[ii];
-	    rhoV1[ii] = spongeAvgRhoV[ii];
-	    rhoE1[ii] = spongeAvgRhoE[ii];
-	}
-    }
+        if(bcX0 == SPONGE){
+	    for(int ip = 0; ip < Ny; ip++){
+	    	int ii = ip*Nx;
+	    	rho1[ii]  = spongeAvgRho[ii];
+	    	rhoU1[ii] = spongeAvgRhoU[ii];
+	    	rhoV1[ii] = spongeAvgRhoV[ii];
+	    	rhoE1[ii] = spongeAvgRhoE[ii];
+	    }
+    	}
 
-    if(bcX1 == SPONGE){
-	for(int ip = 0; ip < Ny; ip++){
-	    int ii = ip*Nx + (Ny-1);
-	    rho1[ii]  = spongeAvgRho[ii];
-	    rhoU1[ii] = spongeAvgRhoU[ii];
-	    rhoV1[ii] = spongeAvgRhoV[ii];
-	    rhoE1[ii] = spongeAvgRhoE[ii];
-	}
-    }
+    	if(bcX1 == SPONGE){
+	    for(int ip = 0; ip < Ny; ip++){
+	    	int ii = ip*Nx + (Ny-1);
+	    	rho1[ii]  = spongeAvgRho[ii];
+	    	rhoU1[ii] = spongeAvgRhoU[ii];
+	    	rhoV1[ii] = spongeAvgRhoV[ii];
+	    	rhoE1[ii] = spongeAvgRhoE[ii];
+	    }
+    	}
 
-    if(bcY0 == SPONGE){
-	for(int ip = 0; ip < Nx; ip++){
-	    int ii = ip;
-	    rho1[ii]  = spongeAvgRho[ii];
-	    rhoU1[ii] = spongeAvgRhoU[ii];
-	    rhoV1[ii] = spongeAvgRhoV[ii];
-	    rhoE1[ii] = spongeAvgRhoE[ii];
-	}
-    }
+    	if(bcY0 == SPONGE){
+	    for(int ip = 0; ip < Nx; ip++){
+	    	int ii = ip;
+	    	rho1[ii]  = spongeAvgRho[ii];
+	    	rhoU1[ii] = spongeAvgRhoU[ii];
+	    	rhoV1[ii] = spongeAvgRhoV[ii];
+	    	rhoE1[ii] = spongeAvgRhoE[ii];
+	    }
+    	}
 
-    if(bcY1 == SPONGE){
-	for(int ip = 0; ip < Nx; ip++){
-	    int ii = (Ny-1)*Nx + ip;
-	    rho1[ii]  = spongeAvgRho[ii];
-	    rhoU1[ii] = spongeAvgRhoU[ii];
-	    rhoV1[ii] = spongeAvgRhoV[ii];
-	    rhoE1[ii] = spongeAvgRhoE[ii];
-	}
+        if(bcY1 == SPONGE){
+	    for(int ip = 0; ip < Nx; ip++){
+	    	int ii = (Ny-1)*Nx + ip;
+	    	rho1[ii]  = spongeAvgRho[ii];
+	    	rhoU1[ii] = spongeAvgRhoU[ii];
+	    	rhoV1[ii] = spongeAvgRhoV[ii];
+	        rhoE1[ii] = spongeAvgRhoE[ii];
+	    }
+        }
+
     }
 }
 
