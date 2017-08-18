@@ -340,6 +340,8 @@ class Solver{
     void checkSolution();
 
     void dumpSolution();
+    
+    void dumpSpongeAvg();
 
     void checkEnd();
 };

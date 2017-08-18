@@ -29,23 +29,21 @@ int main(int argc, char *argv[]){
 
     //Set some of the solver parameters
     solver->timeStep    = 100000;
-    solver->timeEnd     = 0.25;
+    solver->timeEnd     = 10;
     solver->filterStep  = 1;
     solver->checkStep   = 1;
-    solver->outputStep  = 100;
+    solver->outputStep  = 1000;
     solver->CFL		= 0.25;
 
     //Change fluid properties
     solver->idealGas->mu_ref = 0.0000001;
 
     //Set the BC's for the solver
-    solver->bcX0 = Solver::PERIODIC;
-    solver->bcX1 = Solver::PERIODIC;
-    solver->bcY0 = Solver::PERIODIC;
-    solver->bcY1 = Solver::PERIODIC;
+    solver->bcX0 = Solver::SPONGE;
+    solver->bcX1 = Solver::SPONGE;
+    solver->bcY0 = Solver::SPONGE;
+    solver->bcY1 = Solver::SPONGE;
     solver->setBCForDerivatives();
-
-    //Need to set alpha = 0 at sponge ends
 
     //Allocate an initial condition
     for(int ip = 0; ip < Nx; ip++){
@@ -72,9 +70,9 @@ int main(int argc, char *argv[]){
 	}
     }
 
+    //Apply the initial conditions
     solver->applyInitialCondition();
 
-/*
     //Provide non-standard attributes for the sponge layers
     solver->spongeAvgT = 10.0;
     solver->spongeLengthX0 = 0.75;
@@ -82,63 +80,11 @@ int main(int argc, char *argv[]){
     solver->spongeLengthX1 = 0.75;
     solver->spongeLengthY1 = 0.75;
     solver->spongeP = 1.0/solver->idealGas->gamma;
+
+    //Need to run this with sponge BC's to initialize 
     solver->initSpongeStuff();
-*/
 
-/*
-        cout.precision(17);
-
-
-    for(int ip = 0; ip < Ny; ip++){
-        cout <<  solver->filter->alphaFy[ip] << endl;;
-    }
-    cout << endl;
-
-    solver->filter->calcFilterCoefficients(solver->filter->alphaFx);
-    double RHSvec[solver->Nx];
-    double *work = new double[solver->Nx];
-
-    double *test = new double[solver->Nx];
-    for(int ip = 0; ip < Nx; ip++){
-	if(ip < (double)Nx/2.0-0.5){
-	    test[ip] = (double)ip;
-	}else{
-	    test[ip] = 0.0;
-	}
-    }    
-
-    for(int ip = 0; ip < Nx; ip++){
-	cout << test[ip] << endl;
-    } 
-    cout << endl;
-
-    //solver->filter->multRHSFilterFiniteDomain(test, Nx, RHSvec);
-    solver->filter->multRHSFilter(test, Nx, RHSvec);
-
-    for(int ip = 0; ip < Nx; ip++){
-	cout <<  RHSvec[ip] << endl;
-    }
-    cout << endl;
-
-
-    double *filterTest = new double[solver->Nx];
-    //solveTri(solver->filter->offFx, solver->filter->diagFx, solver->filter->offFx, RHSvec, filterTest, work, Nx);
-    cyclic(solver->filter->offFy, solver->filter->diagFy, solver->filter->offFy, 0.49,0.49,  RHSvec, Ny, filterTest);
-
-
-
-    for(int ip = 0; ip < Nx; ip++){
-	cout << filterTest[ip] << endl;
-    }
-    double *rhoTemp  = new double[Nx*Ny];
-
-    solver->filterCompactX(solver->rho1, rhoTemp);
-    memcpy(solver->rho1, rhoTemp, Nx*Ny*(sizeof(double)));
-    solver->computeVelocityTemperatureGradients();
-    solver->computeXMomentum(solver->rhoU1, solver->rhoV1);
-
-    memcpy(solver->rhoU1, solver->rhoUk, Nx*Ny*(sizeof(double))); 
-*/ 
+    //Dump up the initial condition
     solver->dumpSolution();
 
     while(!solver->endFlag){
@@ -154,7 +100,6 @@ int main(int argc, char *argv[]){
         solver->computeVelocityTemperatureGradients();
 
 	solver->computeSpongeSource(solver->rho1, solver->rhoU1, solver->rhoV1, solver->rhoE1);	
-
 
         solver->computeContinuity(solver->rhoU1, solver->rhoV1);
 
@@ -237,11 +182,11 @@ int main(int argc, char *argv[]){
         // Filter Solution
         solver->filterAndUpdateSolution();
 
-        // Update primative and temperature
-        solver->updateEndOfStepPrimAndTemp();
-
 	// Update sponge BC averages and pressure
 	solver->updateSpongeBCs();
+
+        // Update primative and temperature
+        solver->updateEndOfStepPrimAndTemp();
 
         solver->checkSolution();
 

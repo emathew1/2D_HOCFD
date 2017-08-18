@@ -58,40 +58,42 @@ void Solver::setBCForDerivatives(){
 
 void Solver::initSpongeStuff(){
 
+    for(int ip = 0; ip < Nx*Ny; ip++){	
+	//Initialize sponge strength as zero everywhere
+        spongeSigma[ip] = 0.0;	
+    }
+
 
     //Initialize the sponge distribution at the edges of the domains with sponges
     for(int ip = 0; ip < Nx; ip++){
 	for(int jp = 0; jp < Ny; jp++){
 
-	    //Initialize sponge strength as zero everywhere
-	    spongeSigma[ip*Ny + jp] = 0.0;	
-
 
 	    if(bcX0 == SPONGE){
 		if(x[ip] < spongeLengthX0 && spongeLengthX0 != 0){
 		    double spongeX = (spongeLengthX0-x[ip])/spongeLengthX0;
-		    spongeSigma[ip*Ny + jp] = spongeStrength*(0.068*pow(spongeX, 2.0) + 0.845*pow(spongeX, 8.0));
+		    spongeSigma[ip*Ny + jp] = max(spongeStrength*(0.068*pow(spongeX, 2.0) + 0.845*pow(spongeX, 8.0)), spongeSigma[ip*Ny + jp]);;
 		}
 	    }
 
 	    if(bcX1 == SPONGE){
 		if(x[ip] > (Lx - spongeLengthX1) && spongeLengthX1 != 0){
 		    double spongeX = (x[ip] - (Lx - spongeLengthX1))/spongeLengthX1;
-		    spongeSigma[ip*Ny + jp] = spongeStrength*(0.068*pow(spongeX, 2.0) + 0.845*pow(spongeX, 8.0));
+		    spongeSigma[ip*Ny + jp] = max(spongeStrength*(0.068*pow(spongeX, 2.0) + 0.845*pow(spongeX, 8.0)), spongeSigma[ip*Ny + jp]);;
 		}
 	    }
 
 	    if(bcY0 == SPONGE){
 		if(y[jp] < spongeLengthY0 && spongeLengthY0 != 0){
 		    double spongeY = (spongeLengthY0-y[jp])/spongeLengthY0;
-		    spongeSigma[ip*Ny + jp] = spongeStrength*(0.068*pow(spongeY, 2.0) + 0.845*pow(spongeY, 8.0));
+		    spongeSigma[ip*Ny + jp] = max(spongeStrength*(0.068*pow(spongeY, 2.0) + 0.845*pow(spongeY, 8.0)), spongeSigma[ip*Ny + jp]);;
 		}
 	    }
 
 	    if(bcY1 == SPONGE){
 		if(y[jp] > (Ly - spongeLengthY1) && spongeLengthY1 != 0){
 		    double spongeY = (y[jp] - (Ly - spongeLengthY1))/spongeLengthY1;
-		    spongeSigma[ip*Ny + jp] = spongeStrength*(0.068*pow(spongeY, 2.0) + 0.845*pow(spongeY, 8.0));
+		    spongeSigma[ip*Ny + jp] = max(spongeStrength*(0.068*pow(spongeY, 2.0) + 0.845*pow(spongeY, 8.0)), spongeSigma[ip*Ny + jp]);
 		}
 	    } 
 	}
@@ -111,7 +113,6 @@ void Solver::computeSpongeSource(double *rhoIn, double *rhoUIn, double *rhoVIn, 
 
 
    if(bcX0 == SPONGE || bcX1 == SPONGE || bcY0 == SPONGE || bcY1 == SPONGE){
-       cout << "TEST" << endl;
        for(int ip = 0; ip < Nx*Ny; ip++){
            spongeRhoSource[ip]  = spongeSigma[ip]*(spongeAvgRho[ip]  - rhoIn[ip]);
            spongeRhoUSource[ip] = spongeSigma[ip]*(spongeAvgRhoU[ip] - rhoUIn[ip]);
@@ -187,8 +188,9 @@ void Solver::computeVelocityTemperatureGradients(){
         computeCompactDY(V, Vy);
         computeCompactDY(T, Ty);
 
+
         computeCompactDX(U, Ux);
-        computeCompactDX(V, Vx);
+	computeCompactDX(V, Vx);
         computeCompactDX(T, Tx);
 
 }
@@ -201,6 +203,8 @@ void Solver::computeContinuity(double *rhoU, double *rhoV){
     for(int ip = 0; ip < Nx*Ny; ip++){
 	rhok[ip] = dt*(-rhsDxOut[ip] -rhsDyOut[ip]);
     }
+
+
 
 }
 
@@ -217,6 +221,7 @@ void Solver::computeXMomentum(double *rhoU, double *rhoV){
     for(int jp = 0; jp < Nx*Ny; jp++){
 	rhoUk[jp] = dt*(rhsDxOut[jp]+rhsDyOut[jp]);
     }
+
 }
 
 void Solver::computeYMomentum(double *rhoU, double *rhoV){
@@ -522,8 +527,9 @@ void Solver::updateSpongeBCs(){
             spongeAvgRhoE[ip] += eps*(rhoE1[ip] - spongeAvgRhoE[ip]);
 
 	    spongeAvgRhoE[ip] = spongeEpsP*spongeAvgRhoE[ip] + 
-	        (1.0-spongeEpsP)*(spongeP/(1.0-idealGas->gamma) + 0.5*(pow(spongeAvgRhoU[ip],2.0) + 
+	        (1.0-spongeEpsP)*(spongeP/(idealGas->gamma-1.0) + 0.5*(pow(spongeAvgRhoU[ip],2.0) + 
 	        pow(spongeAvgRhoV[ip],2.0))/spongeAvgRho[ip]);
+
         }
         //Need to set boundary conditions on the sponge for the next step
 
@@ -650,6 +656,81 @@ void Solver::dumpSolution(){
             outfile << endl;
         }
         outfile.close();
+
+}
+
+
+void Solver::dumpSpongeAvg(){
+
+        cout << endl;
+        cout << "===============" << endl;
+        cout << " DUMPING FIELD " << endl;
+        cout << "===============" << endl;
+
+
+        ofstream outfile;
+        outfile.precision(17);
+        string outputFileName;
+        outputFileName = "spongerho.out.";
+        outputFileName.append(to_string(step)); 
+        outfile.open(outputFileName);
+        for(int jp = 0; jp < Nx; jp++){
+            for(int kp = 0; kp < Ny; kp++){
+                outfile << spongeAvgRho[jp*Ny+kp] << " ";
+            }
+            outfile << endl;
+        }
+        outfile.close();
+
+        outputFileName = "spongerhoU.out."; 
+        outputFileName.append(to_string(step)); 
+        outfile.open(outputFileName);
+        outfile.precision(17);
+        for(int jp = 0; jp < Nx; jp++){
+            for(int kp = 0; kp < Ny; kp++){
+                outfile << spongeAvgRhoU[jp*Ny+kp] << " ";
+            }
+            outfile << endl;
+        }
+        outfile.close();
+
+        outputFileName = "spongerhoV.out."; 
+        outputFileName.append(to_string(step)); 
+        outfile.open(outputFileName);
+        outfile.precision(17);
+        for(int jp = 0; jp < Nx; jp++){
+            for(int kp = 0; kp < Ny; kp++){
+                outfile << spongeAvgRhoV[jp*Ny+kp] << " ";
+            }
+            outfile << endl;
+        }
+        outfile.close();
+
+        outputFileName = "spongerhoE.out."; 
+        outputFileName.append(to_string(step)); 
+        outfile.open(outputFileName);
+        outfile.precision(17);
+        for(int jp = 0; jp < Nx; jp++){
+            for(int kp = 0; kp < Ny; kp++){
+                outfile << spongeAvgRhoE[jp*Ny+kp]*SOS[jp*Ny+kp] << " ";
+            }
+            outfile << endl;
+        }
+        outfile.close();
+
+        outputFileName = "spongesigma.out."; 
+        outputFileName.append(to_string(step)); 
+        outfile.open(outputFileName);
+        outfile.precision(17);
+        for(int jp = 0; jp < Nx; jp++){
+            for(int kp = 0; kp < Ny; kp++){
+                outfile << spongeSigma[jp*Ny+kp]*SOS[jp*Ny+kp] << " ";
+            }
+            outfile << endl;
+        }
+        outfile.close();
+
+
 
 }
 
