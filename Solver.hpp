@@ -20,7 +20,7 @@ class Solver{
     enum TimeStepping { CONST_DT, CONST_CFL};
     TimeStepping timeStepping;
 
-    enum BoundaryConditions { PERIODIC, SPONGE, WALL, MOVING_WALL, INLET};
+    enum BoundaryConditions { PERIODIC, SPONGE, ADIABATIC_WALL, MOVING_WALL, INLET};
     BoundaryConditions bcX0, bcX1, bcY0, bcY1;
  
     //Mesh
@@ -304,6 +304,8 @@ class Solver{
     void computeCompactDY(double *phi, double *dphidy);
 
     void computeCompactDX(double *phi, double *dphidy);
+
+    void handleBCs(double *rhoTemp, double *rhoUTemp, double *rhoVTemp, double *rhoETemp);
 
     void computeVelocityTemperatureGradients();
 

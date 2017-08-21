@@ -32,14 +32,14 @@ int main(int argc, char *argv[]){
     solver->timeEnd     = 10;
     solver->filterStep  = 1;
     solver->checkStep   = 1;
-    solver->outputStep  = 1000;
+    solver->outputStep  = 100;
     solver->CFL		= 0.25;
 
     //Change fluid properties
-    solver->idealGas->mu_ref = 0.0000001;
+    solver->idealGas->mu_ref = 0.0001;
 
     //Set the BC's for the solver
-    solver->bcX0 = Solver::SPONGE;
+    solver->bcX0 = Solver::ADIABATIC_WALL;
     solver->bcX1 = Solver::SPONGE;
     solver->bcY0 = Solver::SPONGE;
     solver->bcY1 = Solver::SPONGE;
@@ -51,22 +51,10 @@ int main(int argc, char *argv[]){
 	    solver->U0[ip*Ny + jp] = 0.0;
 	    solver->V0[ip*Ny + jp] = 0.0;
 	    solver->p0[ip*Ny + jp] = 1/solver->idealGas->gamma + 
-			10.0*exp(-(pow(solver->x[ip]-2.0,2.0) + pow(solver->y[jp] - 2.0,2.0))/0.25);
+			5.0*exp(-(pow(solver->x[ip]-2.0,2.0) + pow(solver->y[jp] - 2.15,2.0))/0.01) +			5.0*exp(-(pow(solver->x[ip]-2.0,2.0) + pow(solver->y[jp] - 1.85,2.0))/0.01);
+
 	    solver->rho0[ip*Ny + jp] = 1.0;
 
-/*
-	    if(solver->x[ip] < 2.0){
-	        solver->p0[ip*Ny + jp]   = 1.0/solver->idealGas->gamma;
-	        solver->U0[ip*Ny + jp]   = 0.0;
-	        solver->V0[ip*Ny + jp]   = 0.0;
-	        solver->rho0[ip*Ny + jp] = 1.0;
-	    }else{
-	        solver->p0[ip*Ny + jp]   = 0.1/solver->idealGas->gamma;
-	        solver->U0[ip*Ny + jp]   = 0.0;
-	        solver->V0[ip*Ny + jp]   = 0.0;
-	        solver->rho0[ip*Ny + jp] = 0.125;
-	    }
-*/
 	}
     }
 
@@ -74,11 +62,12 @@ int main(int argc, char *argv[]){
     solver->applyInitialCondition();
 
     //Provide non-standard attributes for the sponge layers
+    solver->spongeStrength = 12.0;
     solver->spongeAvgT = 10.0;
-    solver->spongeLengthX0 = 0.75;
-    solver->spongeLengthY0 = 0.75;
-    solver->spongeLengthX1 = 0.75;
-    solver->spongeLengthY1 = 0.75;
+    solver->spongeLengthX0 = 1.0;
+    solver->spongeLengthY0 = 1.0;
+    solver->spongeLengthX1 = 1.0;
+    solver->spongeLengthY1 = 1.0;
     solver->spongeP = 1.0/solver->idealGas->gamma;
 
     //Need to run this with sponge BC's to initialize 
@@ -92,10 +81,11 @@ int main(int argc, char *argv[]){
         //At the beginning of every step
         solver->computeDtFromCFL_advanceTime();
 
-
 	//=======================
         // RK Step 1
 	//=======================
+
+	solver->handleBCs(solver->rho1, solver->rhoU1, solver->rhoV1, solver->rhoE1);
 
         solver->computeVelocityTemperatureGradients();
 
@@ -118,9 +108,12 @@ int main(int argc, char *argv[]){
         // RK Step 2
 	//=======================
 
+	solver->handleBCs(solver->rho1k, solver->rhoU1k, solver->rhoV1k, solver->rhoE1k);
+
         solver->computeVelocityTemperatureGradients();
 	
 	solver->computeSpongeSource(solver->rho1k, solver->rhoU1k, solver->rhoV1k, solver->rhoE1k);	
+
         solver->computeContinuity(solver->rhoU1k, solver->rhoV1k);
 
         solver->computeXMomentum(solver->rhoU1k, solver->rhoV1k);
@@ -139,9 +132,13 @@ int main(int argc, char *argv[]){
         // RK Step 3
 	//=======================
 
+
+	solver->handleBCs(solver->rho1k, solver->rhoU1k, solver->rhoV1k, solver->rhoE1k);
+
         solver->computeVelocityTemperatureGradients();
 	
 	solver->computeSpongeSource(solver->rho1k, solver->rhoU1k, solver->rhoV1k, solver->rhoE1k);	
+
         solver->computeContinuity(solver->rhoU1k, solver->rhoV1k);
 
         solver->computeXMomentum(solver->rhoU1k, solver->rhoV1k);
@@ -159,9 +156,12 @@ int main(int argc, char *argv[]){
         // RK Step 4
 	//=======================
 
+	solver->handleBCs(solver->rho1k, solver->rhoU1k, solver->rhoV1k, solver->rhoE1k);
+
         solver->computeVelocityTemperatureGradients();
 	
 	solver->computeSpongeSource(solver->rho1k, solver->rhoU1k, solver->rhoV1k, solver->rhoE1k);	
+
         solver->computeContinuity(solver->rhoU1k, solver->rhoV1k);
 
         solver->computeXMomentum(solver->rhoU1k, solver->rhoV1k);

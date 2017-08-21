@@ -2,7 +2,7 @@
 
 void Solver::setBCForDerivatives(){
 
-    if(bcX0 == SPONGE || bcX0 ==  WALL || bcX0 ==  MOVING_WALL){
+    if(bcX0 == SPONGE || bcX0 ==  ADIABATIC_WALL || bcX0 ==  MOVING_WALL){
 	derivatives->offx2[0] = derivatives->alpha1;
 	derivatives->offx2[1] = derivatives->alpha22;
 	derivatives->offx1[1] = derivatives->alpha21;
@@ -10,7 +10,7 @@ void Solver::setBCForDerivatives(){
 	filter->offFx2[0] = 0.0;
     }
 
-    if(bcX1 == SPONGE || bcX1 ==  WALL || bcX1 ==  MOVING_WALL){
+    if(bcX1 == SPONGE || bcX1 ==  ADIABATIC_WALL || bcX1 ==  MOVING_WALL){
 	derivatives->offx2[Nx-2] = derivatives->alpha21;
 	derivatives->offx1[Nx-2] = derivatives->alpha22;
 	derivatives->offx1[Nx-1] = derivatives->alpha1;
@@ -18,7 +18,7 @@ void Solver::setBCForDerivatives(){
 	filter->offFx1[Nx-1] = 0.0;
     }
 
-    if(bcY0 == SPONGE || bcY0 ==  WALL || bcY0 ==  MOVING_WALL){
+    if(bcY0 == SPONGE || bcY0 ==  ADIABATIC_WALL || bcY0 ==  MOVING_WALL){
 	derivatives->offy2[0] = derivatives->alpha1;
 	derivatives->offy2[1] = derivatives->alpha22;
 	derivatives->offy1[1] = derivatives->alpha21;
@@ -26,7 +26,7 @@ void Solver::setBCForDerivatives(){
 	filter->offFy2[0] = 0.0;
     }
 
-    if(bcY1 == SPONGE || bcY1 ==  WALL || bcY1 ==  MOVING_WALL){
+    if(bcY1 == SPONGE || bcY1 ==  ADIABATIC_WALL || bcY1 ==  MOVING_WALL){
 	derivatives->offy2[Ny-2] = derivatives->alpha21;
 	derivatives->offy1[Ny-2] = derivatives->alpha22;
 	derivatives->offy1[Ny-1] = derivatives->alpha1;
@@ -181,13 +181,116 @@ void Solver::computeCompactDX(double *phi, double *dphidx){
     }
 }
 
+void Solver::handleBCs(double *rhoTemp, double *rhoUTemp, double *rhoVTemp, double *rhoETemp){
+
+
+   //Adiabatic Wall boundary condition handling
+   //prototyping, only using low order approximations for boundary conditions
+   //@wall collocated grid, adiabatic
+   //  U(0) = 0.0
+   //  V(0) = 0.0
+   //  dT/dy(0) = 0.0
+   //  dP/dy(0) = ??? need more info
+   //  rho -> get from pressure?
+   if(bcX0 == ADIABATIC_WALL){
+       int ip = 0;
+       int ip_p1 = 1;
+       for(int jp = 0; jp < Ny; jp++){
+	   int ii  = ip*Ny    + jp;
+	   int ii1 = ip_p1*Ny + jp;
+
+	   U[ii] = 0.0;
+	   V[ii] = 0.0;
+
+	   //1st order
+	   p[ii] = p[ii1]; 
+	   T[ii] = T[ii1];
+           rhoTemp[ii] = rhoTemp[ii1];
+
+	   //update other quantities
+	   rhoUTemp[ii] = 0.0;
+	   rhoVTemp[ii] = 0.0;
+	   rhoETemp[ii] = p[ii]/(idealGas->gamma-1.0);;
+       }
+   }
+
+   if(bcX1 == ADIABATIC_WALL){
+       int ip = Nx;
+       int ip_p1 = Nx-1;
+       for(int jp = 0; jp < Ny; jp++){
+	   int ii  = ip*Ny    + jp;
+	   int ii1 = ip_p1*Ny + jp;
+
+	   U[ii] = 0.0;
+	   V[ii] = 0.0;
+
+	   //1st order
+	   p[ii] = p[ii1]; 
+	   T[ii] = T[ii1];
+           rhoTemp[ii] = rhoTemp[ii1];
+
+	   //update other quantities
+	   rhoUTemp[ii] = 0.0;
+	   rhoVTemp[ii] = 0.0;
+	   rhoETemp[ii] = p[ii]/(idealGas->gamma-1.0);;
+       }
+   }
+
+   if(bcY0 == ADIABATIC_WALL){
+       int jp = 0;
+       int jp_p1 = 1;
+       for(int ip = 0; ip < Nx; ip++){
+	   int ii  = ip*Ny + jp;
+	   int ii1 = ip*Ny + jp_p1;
+
+	   U[ii] = 0.0;
+	   V[ii] = 0.0;
+
+	   //1st order
+	   p[ii] = p[ii1]; 
+	   T[ii] = T[ii1];
+           rhoTemp[ii] = rhoTemp[ii1];
+
+	   //update other quantities
+	   rhoUTemp[ii] = 0.0;
+	   rhoVTemp[ii] = 0.0;
+	   rhoETemp[ii] = p[ii]/(idealGas->gamma-1.0);;
+       }
+   }
+
+   if(bcY1 == ADIABATIC_WALL){
+       int jp = Ny;
+       int jp_p1 = Ny-1;
+       for(int ip = 0; ip < Nx; ip++){
+	   int ii  = ip*Ny + jp;
+	   int ii1 = ip*Ny + jp_p1;
+
+	   U[ii] = 0.0;
+	   V[ii] = 0.0;
+
+	   //1st order
+	   p[ii] = p[ii1]; 
+	   T[ii] = T[ii1];
+           rhoTemp[ii] = rhoTemp[ii1];
+
+	   //update other quantities
+	   rhoUTemp[ii] = 0.0;
+	   rhoVTemp[ii] = 0.0;
+	   rhoETemp[ii] = p[ii]/(idealGas->gamma-1.0);;
+       }
+   }
+
+    idealGas->solveMu(T, mu);
+    idealGas->solveSOS(rhoTemp, p, SOS);
+
+}
+
 void Solver::computeVelocityTemperatureGradients(){
 
 
         computeCompactDY(U, Uy);
         computeCompactDY(V, Vy);
         computeCompactDY(T, Ty);
-
 
         computeCompactDX(U, Ux);
 	computeCompactDX(V, Vx);
@@ -712,7 +815,7 @@ void Solver::dumpSpongeAvg(){
         outfile.precision(17);
         for(int jp = 0; jp < Nx; jp++){
             for(int kp = 0; kp < Ny; kp++){
-                outfile << spongeAvgRhoE[jp*Ny+kp]*SOS[jp*Ny+kp] << " ";
+                outfile << spongeAvgRhoE[jp*Ny+kp] << " ";
             }
             outfile << endl;
         }
@@ -724,7 +827,7 @@ void Solver::dumpSpongeAvg(){
         outfile.precision(17);
         for(int jp = 0; jp < Nx; jp++){
             for(int kp = 0; kp < Ny; kp++){
-                outfile << spongeSigma[jp*Ny+kp]*SOS[jp*Ny+kp] << " ";
+                outfile << spongeSigma[jp*Ny+kp] << " ";
             }
             outfile << endl;
         }
