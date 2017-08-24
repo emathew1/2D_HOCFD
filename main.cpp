@@ -51,7 +51,7 @@ int main(int argc, char *argv[]){
 	    solver->U0[ip*Ny + jp] = 0.0;
 	    solver->V0[ip*Ny + jp] = 0.0;
 	    solver->p0[ip*Ny + jp] = 1/solver->idealGas->gamma + 
-			5.0*exp(-(pow(solver->x[ip]-2.0,2.0) + pow(solver->y[jp] - 2.15,2.0))/0.01) +			5.0*exp(-(pow(solver->x[ip]-2.0,2.0) + pow(solver->y[jp] - 1.85,2.0))/0.01);
+			0.035*exp(-(pow(solver->x[ip]-2.0,2.0) + pow(solver->y[jp] - 2.15,2.0))/0.01);
 
 	    solver->rho0[ip*Ny + jp] = 1.0;
 
@@ -85,7 +85,9 @@ int main(int argc, char *argv[]){
         // RK Step 1
 	//=======================
 
-	solver->handleBCs(solver->rho1, solver->rhoU1, solver->rhoV1, solver->rhoE1);
+	solver->rkStep = 1;
+
+	solver->handleBCs();
 
         solver->computeVelocityTemperatureGradients();
 
@@ -99,6 +101,8 @@ int main(int argc, char *argv[]){
 
         solver->computeEnergy(solver->rhoE1);
 
+	solver->enforceBCs();
+
 	solver->computeRhs();
     
         solver->updateSolutionRKStep1();
@@ -108,7 +112,9 @@ int main(int argc, char *argv[]){
         // RK Step 2
 	//=======================
 
-	solver->handleBCs(solver->rho1k, solver->rhoU1k, solver->rhoV1k, solver->rhoE1k);
+	solver->rkStep = 2;
+
+	solver->handleBCs();
 
         solver->computeVelocityTemperatureGradients();
 	
@@ -121,6 +127,8 @@ int main(int argc, char *argv[]){
         solver->computeYMomentum(solver->rhoU1k, solver->rhoV1k);
 
         solver->computeEnergy(solver->rhoE1k);
+
+	solver->enforceBCs();
  
 	solver->computeRhs();
 
@@ -132,8 +140,9 @@ int main(int argc, char *argv[]){
         // RK Step 3
 	//=======================
 
+	solver->rkStep = 3;
 
-	solver->handleBCs(solver->rho1k, solver->rhoU1k, solver->rhoV1k, solver->rhoE1k);
+	solver->handleBCs();
 
         solver->computeVelocityTemperatureGradients();
 	
@@ -146,6 +155,8 @@ int main(int argc, char *argv[]){
         solver->computeYMomentum(solver->rhoU1k, solver->rhoV1k);
 
         solver->computeEnergy(solver->rhoE1k);
+
+	solver->enforceBCs();
 
 	solver->computeRhs();
 
@@ -156,7 +167,9 @@ int main(int argc, char *argv[]){
         // RK Step 4
 	//=======================
 
-	solver->handleBCs(solver->rho1k, solver->rhoU1k, solver->rhoV1k, solver->rhoE1k);
+	solver->rkStep = 4;
+
+	solver->handleBCs();
 
         solver->computeVelocityTemperatureGradients();
 	
@@ -169,6 +182,8 @@ int main(int argc, char *argv[]){
         solver->computeYMomentum(solver->rhoU1k, solver->rhoV1k);
 
         solver->computeEnergy(solver->rhoE1k);
+
+	solver->enforceBCs();
 
 	solver->computeRhs();
 

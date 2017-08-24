@@ -33,6 +33,7 @@ class Solver{
     double dt, time, timeEnd;
     int step, checkStep, timeStep, filterCount, filterStep, outputStep;
     double CFL; bool endFlag;
+    int rkStep;
 
     //Timing 
     std::chrono::system_clock::time_point t1, t2;
@@ -305,7 +306,7 @@ class Solver{
 
     void computeCompactDX(double *phi, double *dphidy);
 
-    void handleBCs(double *rhoTemp, double *rhoUTemp, double *rhoVTemp, double *rhoETemp);
+    void handleBCs();
 
     void computeVelocityTemperatureGradients();
 

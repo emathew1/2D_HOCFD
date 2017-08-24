@@ -8,6 +8,21 @@ void Solver::setBCForDerivatives(){
 	derivatives->offx1[1] = derivatives->alpha21;
 	filter->alphaFx[0] = 0.0;
 	filter->offFx2[0] = 0.0;
+
+/*
+	if(bcX0 == ADIABATIC_WALL){
+	    filter->alphaFx[1] = 0.0;
+	    filter->offFx2[1] = 0.0;
+	    filter->offFx1[0] = 0.0;
+	    filter->alphaFx[2] = 0.0;
+	    filter->offFx2[2] = 0.0;
+	    filter->offFx1[1] = 0.0;
+	    filter->alphaFx[3] = 0.0;
+	    filter->offFx2[3] = 0.0;
+	    filter->offFx1[2] = 0.0;
+
+	}
+*/
     }
 
     if(bcX1 == SPONGE || bcX1 ==  ADIABATIC_WALL || bcX1 ==  MOVING_WALL){
@@ -16,6 +31,7 @@ void Solver::setBCForDerivatives(){
 	derivatives->offx1[Nx-1] = derivatives->alpha1;
 	filter->alphaFx[Nx-1] = 0.0;
 	filter->offFx1[Nx-1] = 0.0;
+	
     }
 
     if(bcY0 == SPONGE || bcY0 ==  ADIABATIC_WALL || bcY0 ==  MOVING_WALL){
@@ -181,107 +197,125 @@ void Solver::computeCompactDX(double *phi, double *dphidx){
     }
 }
 
-void Solver::handleBCs(double *rhoTemp, double *rhoUTemp, double *rhoVTemp, double *rhoETemp){
+void Solver::handleBCs(){
 
 
    //Adiabatic Wall boundary condition handling
-   //prototyping, only using low order approximations for boundary conditions
-   //@wall collocated grid, adiabatic
-   //  U(0) = 0.0
-   //  V(0) = 0.0
-   //  dT/dy(0) = 0.0
-   //  dP/dy(0) = ??? need more info
-   //  rho -> get from pressure?
    if(bcX0 == ADIABATIC_WALL){
-       int ip = 0;
-       int ip_p1 = 1;
-       for(int jp = 0; jp < Ny; jp++){
-	   int ii  = ip*Ny    + jp;
-	   int ii1 = ip_p1*Ny + jp;
+	
+	//Set up pointers for intermediate step data
+	double *rhoP, *rhoUP, *rhoVP, *rhoEP;
+	if(rkStep == 1){
+	   rhoP = rho1;
+	   rhoUP = rhoU1;
+	   rhoVP = rhoV1;
+	   rhoEP = rhoE1;
+	}else{
+	   rhoP = rho1k;
+	   rhoUP = rhoU1k;
+	   rhoVP = rhoV1k;
+	   rhoEP = rhoE1k;
+	}
 
-	   U[ii] = 0.0;
-	   V[ii] = 0.0;
+        int ip = 0;
+        for(int jp = 0; jp < Ny; jp++){
+           int ii  = ip*Ny + jp; 
 
-	   //1st order
-	   p[ii] = p[ii1]; 
-	   T[ii] = T[ii1];
-           rhoTemp[ii] = rhoTemp[ii1];
+	   U[ii] = 0.0; V[ii] = 0.0;
+	
+	   int ii1 = (ip+1)*Ny + jp; 
+	   int ii2 = (ip+2)*Ny + jp; 
+	   int ii3 = (ip+3)*Ny + jp; 
+	   int ii4 = (ip+4)*Ny + jp; 
 
-	   //update other quantities
-	   rhoUTemp[ii] = 0.0;
-	   rhoVTemp[ii] = 0.0;
-	   rhoETemp[ii] = p[ii]/(idealGas->gamma-1.0);;
-       }
+	   T[ii] = (1.0/25.0)*(48.0*T[ii1] - 36.0*T[ii2] + 16.0*T[ii3] - 3.0*T[ii4]); 	
+
+	
+	   //4th order forward diff
+	   double dpdx = -(25.0/12.0)*p[ii] + 4.0*p[ii1] - 3.0*p[ii2] + (4.0/3.0)*p[ii3] - (1.0/4.0)*p[ii4];
+	   dpdx /= dx; 
+
+	   double drhodx = -(25.0/12.0)*rhoP[ii] + 4.0*rhoP[ii1] - 3.0*rhoP[ii2] + (4.0/3.0)*rhoP[ii3] - (1.0/4.0)*rhoP[ii4];
+	   drhodx /= dx; 
+
+	   double dUdx = -(25.0/12.0)*U[ii] + 4.0*U[ii1] - 3.0*U[ii2] + (4.0/3.0)*U[ii3] - (1.0/4.0)*U[ii4];
+	   dUdx /= dx; 
+
+
+
+ 	   double lambda[5];
+	   double L[5];
+
+	   lambda[0] = SOS[ii];
+	   lambda[1] = 0.0;
+	   lambda[2] = 0.0;
+	   lambda[3] = 0.0;
+	   lambda[4] = -SOS[ii];
+
+	   L[4] = lambda[4]*(dpdx + rhoP[ii]*SOS[ii]*dUdx); 
+	   L[0] = L[4];
+	   
+	   L[1] = 0.0;
+	   L[2] = 0.0;
+	   L[3] = 0.0;
+
+	   double rhoRHS = -(dt/(SOS[ii]*SOS[ii]))*L[4]; 
+	   double rhoERHS = -dt*(L[4]/(idealGas->gamma-1));
+	
+	   if(rkStep == 1){
+	       //update final solution
+	       rho2[ii]  = rho1[ii] + rhoRHS/6.0;
+	       rhoU2[ii] = 0.0;
+	       rhoV2[ii] = 0.0;
+	       rhoE2[ii] = rhoE1[ii] + rhoERHS/6.0;
+
+	       //update intermediate
+	       rho1k[ii]  = rho1[ii] + rhoRHS/2.0;
+	       rhoU1k[ii] = 0.0; 
+	       rhoV1k[ii] = 0.0;
+	       rhoE1k[ii] = rhoE1[ii] + rhoERHS/2.0;
+
+	   }else if(rkStep == 2){
+	       //update final solution
+	       rho2[ii]  += rhoRHS/3.0;
+	       rhoU2[ii] += 0.0;
+	       rhoV2[ii] += 0.0;
+	       rhoE2[ii] += rhoERHS/3.0;
+
+	       //update intermediate
+	       rho1k[ii]  = rho1[ii] + rhoRHS/2.0;
+	       rhoU1k[ii] = 0.0; 
+	       rhoV1k[ii] = 0.0;
+	       rhoE1k[ii] = rhoE1[ii] + rhoERHS/2.0;
+
+
+	   }else if(rkStep == 3){
+	       //update final solution
+	       rho2[ii]  += rhoRHS/3.0;
+	       rhoU2[ii] += 0.0;
+	       rhoV2[ii] += 0.0;
+	       rhoE2[ii] += rhoERHS/3.0;
+
+	       //update intermediate
+	       rho1k[ii]  = rho1[ii] + rhoRHS;
+	       rhoU1k[ii] = 0.0; 
+	       rhoV1k[ii] = 0.0;
+	       rhoE1k[ii] = rhoE1[ii] + rhoERHS;
+
+
+	   }else{
+	       //update final
+	       rho2[ii]  += rhoRHS/6.0;
+	       rhoU2[ii] += 0.0;
+	       rhoV2[ii] += 0.0;
+	       rhoE2[ii] += rhoERHS/6.0;
+
+	   }
+
+	}
+
    }
 
-   if(bcX1 == ADIABATIC_WALL){
-       int ip = Nx;
-       int ip_p1 = Nx-1;
-       for(int jp = 0; jp < Ny; jp++){
-	   int ii  = ip*Ny    + jp;
-	   int ii1 = ip_p1*Ny + jp;
-
-	   U[ii] = 0.0;
-	   V[ii] = 0.0;
-
-	   //1st order
-	   p[ii] = p[ii1]; 
-	   T[ii] = T[ii1];
-           rhoTemp[ii] = rhoTemp[ii1];
-
-	   //update other quantities
-	   rhoUTemp[ii] = 0.0;
-	   rhoVTemp[ii] = 0.0;
-	   rhoETemp[ii] = p[ii]/(idealGas->gamma-1.0);;
-       }
-   }
-
-   if(bcY0 == ADIABATIC_WALL){
-       int jp = 0;
-       int jp_p1 = 1;
-       for(int ip = 0; ip < Nx; ip++){
-	   int ii  = ip*Ny + jp;
-	   int ii1 = ip*Ny + jp_p1;
-
-	   U[ii] = 0.0;
-	   V[ii] = 0.0;
-
-	   //1st order
-	   p[ii] = p[ii1]; 
-	   T[ii] = T[ii1];
-           rhoTemp[ii] = rhoTemp[ii1];
-
-	   //update other quantities
-	   rhoUTemp[ii] = 0.0;
-	   rhoVTemp[ii] = 0.0;
-	   rhoETemp[ii] = p[ii]/(idealGas->gamma-1.0);;
-       }
-   }
-
-   if(bcY1 == ADIABATIC_WALL){
-       int jp = Ny;
-       int jp_p1 = Ny-1;
-       for(int ip = 0; ip < Nx; ip++){
-	   int ii  = ip*Ny + jp;
-	   int ii1 = ip*Ny + jp_p1;
-
-	   U[ii] = 0.0;
-	   V[ii] = 0.0;
-
-	   //1st order
-	   p[ii] = p[ii1]; 
-	   T[ii] = T[ii1];
-           rhoTemp[ii] = rhoTemp[ii1];
-
-	   //update other quantities
-	   rhoUTemp[ii] = 0.0;
-	   rhoVTemp[ii] = 0.0;
-	   rhoETemp[ii] = p[ii]/(idealGas->gamma-1.0);;
-       }
-   }
-
-    idealGas->solveMu(T, mu);
-    idealGas->solveSOS(rhoTemp, p, SOS);
 
 }
 
