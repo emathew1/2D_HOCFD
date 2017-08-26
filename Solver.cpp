@@ -8,21 +8,6 @@ void Solver::setBCForDerivatives(){
 	derivatives->offx1[1] = derivatives->alpha21;
 	filter->alphaFx[0] = 0.0;
 	filter->offFx2[0] = 0.0;
-
-/*
-	if(bcX0 == ADIABATIC_WALL){
-	    filter->alphaFx[1] = 0.0;
-	    filter->offFx2[1] = 0.0;
-	    filter->offFx1[0] = 0.0;
-	    filter->alphaFx[2] = 0.0;
-	    filter->offFx2[2] = 0.0;
-	    filter->offFx1[1] = 0.0;
-	    filter->alphaFx[3] = 0.0;
-	    filter->offFx2[3] = 0.0;
-	    filter->offFx1[2] = 0.0;
-
-	}
-*/
     }
 
     if(bcX1 == SPONGE || bcX1 ==  ADIABATIC_WALL || bcX1 ==  MOVING_WALL){
@@ -31,7 +16,6 @@ void Solver::setBCForDerivatives(){
 	derivatives->offx1[Nx-1] = derivatives->alpha1;
 	filter->alphaFx[Nx-1] = 0.0;
 	filter->offFx1[Nx-1] = 0.0;
-	
     }
 
     if(bcY0 == SPONGE || bcY0 ==  ADIABATIC_WALL || bcY0 ==  MOVING_WALL){
@@ -74,53 +58,57 @@ void Solver::setBCForDerivatives(){
 
 void Solver::initSpongeStuff(){
 
-    for(int ip = 0; ip < Nx*Ny; ip++){	
-	//Initialize sponge strength as zero everywhere
-        spongeSigma[ip] = 0.0;	
-    }
+    if(bcX0 == SPONGE || bcX1 == SPONGE || bcY0 == SPONGE || bcY1 == SPONGE){
+
+        for(int ip = 0; ip < Nx*Ny; ip++){	
+	    //Initialize sponge strength as zero everywhere
+            spongeSigma[ip] = 0.0;	
+        }
 
 
-    //Initialize the sponge distribution at the edges of the domains with sponges
-    for(int ip = 0; ip < Nx; ip++){
-	for(int jp = 0; jp < Ny; jp++){
+        //Initialize the sponge distribution at the edges of the domains with sponges
+        for(int ip = 0; ip < Nx; ip++){
+	    for(int jp = 0; jp < Ny; jp++){
 
 
-	    if(bcX0 == SPONGE){
-		if(x[ip] < spongeLengthX0 && spongeLengthX0 != 0){
-		    double spongeX = (spongeLengthX0-x[ip])/spongeLengthX0;
-		    spongeSigma[ip*Ny + jp] = max(spongeStrength*(0.068*pow(spongeX, 2.0) + 0.845*pow(spongeX, 8.0)), spongeSigma[ip*Ny + jp]);;
-		}
+	        if(bcX0 == SPONGE){
+		    if(x[ip] < spongeLengthX0 && spongeLengthX0 != 0){
+		        double spongeX = (spongeLengthX0-x[ip])/spongeLengthX0;
+		        spongeSigma[ip*Ny + jp] = max(spongeStrength*(0.068*pow(spongeX, 2.0) + 0.845*pow(spongeX, 8.0)), spongeSigma[ip*Ny + jp]);;
+		    }
+	        }
+
+	        if(bcX1 == SPONGE){
+		    if(x[ip] > (Lx - spongeLengthX1) && spongeLengthX1 != 0){
+		        double spongeX = (x[ip] - (Lx - spongeLengthX1))/spongeLengthX1;
+		        spongeSigma[ip*Ny + jp] = max(spongeStrength*(0.068*pow(spongeX, 2.0) + 0.845*pow(spongeX, 8.0)), spongeSigma[ip*Ny + jp]);;
+		    }
+	        }
+
+	        if(bcY0 == SPONGE){
+		    if(y[jp] < spongeLengthY0 && spongeLengthY0 != 0){
+		        double spongeY = (spongeLengthY0-y[jp])/spongeLengthY0;
+		        spongeSigma[ip*Ny + jp] = max(spongeStrength*(0.068*pow(spongeY, 2.0) + 0.845*pow(spongeY, 8.0)), spongeSigma[ip*Ny + jp]);;
+		    }
+	        }
+
+	        if(bcY1 == SPONGE){
+		    if(y[jp] > (Ly - spongeLengthY1) && spongeLengthY1 != 0){
+		        double spongeY = (y[jp] - (Ly - spongeLengthY1))/spongeLengthY1;
+		        spongeSigma[ip*Ny + jp] = max(spongeStrength*(0.068*pow(spongeY, 2.0) + 0.845*pow(spongeY, 8.0)), spongeSigma[ip*Ny + jp]);
+		    }
+	        } 
 	    }
+        }   
 
-	    if(bcX1 == SPONGE){
-		if(x[ip] > (Lx - spongeLengthX1) && spongeLengthX1 != 0){
-		    double spongeX = (x[ip] - (Lx - spongeLengthX1))/spongeLengthX1;
-		    spongeSigma[ip*Ny + jp] = max(spongeStrength*(0.068*pow(spongeX, 2.0) + 0.845*pow(spongeX, 8.0)), spongeSigma[ip*Ny + jp]);;
-		}
-	    }
+       //Initialize the sponge average as the initial condition
+       for(int ip = 0; ip < Nx*Ny; ip++){
+           spongeAvgRho[ip]  = rho1[ip];   
+           spongeAvgRhoU[ip] = rhoU1[ip];   
+           spongeAvgRhoV[ip] = rhoV1[ip];   
+           spongeAvgRhoE[ip] = rhoE1[ip];   
+       }
 
-	    if(bcY0 == SPONGE){
-		if(y[jp] < spongeLengthY0 && spongeLengthY0 != 0){
-		    double spongeY = (spongeLengthY0-y[jp])/spongeLengthY0;
-		    spongeSigma[ip*Ny + jp] = max(spongeStrength*(0.068*pow(spongeY, 2.0) + 0.845*pow(spongeY, 8.0)), spongeSigma[ip*Ny + jp]);;
-		}
-	    }
-
-	    if(bcY1 == SPONGE){
-		if(y[jp] > (Ly - spongeLengthY1) && spongeLengthY1 != 0){
-		    double spongeY = (y[jp] - (Ly - spongeLengthY1))/spongeLengthY1;
-		    spongeSigma[ip*Ny + jp] = max(spongeStrength*(0.068*pow(spongeY, 2.0) + 0.845*pow(spongeY, 8.0)), spongeSigma[ip*Ny + jp]);
-		}
-	    } 
-	}
-    }   
-
-   //Initialize the sponge average as the initial condition
-   for(int ip = 0; ip < Nx*Ny; ip++){
-       spongeAvgRho[ip]  = rho1[ip];   
-       spongeAvgRhoU[ip] = rhoU1[ip];   
-       spongeAvgRhoV[ip] = rhoV1[ip];   
-       spongeAvgRhoE[ip] = rhoE1[ip];   
    }
 
 }
@@ -246,11 +234,11 @@ void Solver::handleBCs(){
  	   double lambda[5];
 	   double L[5];
 
-	   lambda[0] = SOS[ii];
+	   lambda[0] = -SOS[ii];
 	   lambda[1] = 0.0;
 	   lambda[2] = 0.0;
 	   lambda[3] = 0.0;
-	   lambda[4] = -SOS[ii];
+	   lambda[4] = SOS[ii];
 
 	   L[4] = lambda[4]*(dpdx + rhoP[ii]*SOS[ii]*dUdx); 
 	   L[0] = L[4];
@@ -670,9 +658,11 @@ void Solver::updateSpongeBCs(){
         }
         //Need to set boundary conditions on the sponge for the next step
 
+	
         if(bcX0 == SPONGE){
-	    for(int ip = 0; ip < Ny; ip++){
-	    	int ii = ip*Nx;
+	    int ip = 0;
+	    for(int jp = 0; jp < Ny; jp++){
+	    	int ii = ip*Ny + jp;
 	    	rho1[ii]  = spongeAvgRho[ii];
 	    	rhoU1[ii] = spongeAvgRhoU[ii];
 	    	rhoV1[ii] = spongeAvgRhoV[ii];
@@ -681,8 +671,9 @@ void Solver::updateSpongeBCs(){
     	}
 
     	if(bcX1 == SPONGE){
-	    for(int ip = 0; ip < Ny; ip++){
-	    	int ii = ip*Nx + (Ny-1);
+	    int ip = Nx-1;
+	    for(int jp = 0; jp < Ny; jp++){
+	    	int ii = ip*Ny + jp;;
 	    	rho1[ii]  = spongeAvgRho[ii];
 	    	rhoU1[ii] = spongeAvgRhoU[ii];
 	    	rhoV1[ii] = spongeAvgRhoV[ii];
@@ -691,8 +682,9 @@ void Solver::updateSpongeBCs(){
     	}
 
     	if(bcY0 == SPONGE){
+	    int jp = 0;
 	    for(int ip = 0; ip < Nx; ip++){
-	    	int ii = ip;
+	    	int ii = ip*Ny - 1;;
 	    	rho1[ii]  = spongeAvgRho[ii];
 	    	rhoU1[ii] = spongeAvgRhoU[ii];
 	    	rhoV1[ii] = spongeAvgRhoV[ii];
@@ -701,8 +693,9 @@ void Solver::updateSpongeBCs(){
     	}
 
         if(bcY1 == SPONGE){
+	    int jp = Ny - 1;
 	    for(int ip = 0; ip < Nx; ip++){
-	    	int ii = (Ny-1)*Nx + ip;
+	    	int ii = ip*Ny + jp;
 	    	rho1[ii]  = spongeAvgRho[ii];
 	    	rhoU1[ii] = spongeAvgRhoU[ii];
 	    	rhoV1[ii] = spongeAvgRhoV[ii];
